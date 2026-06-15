@@ -1,0 +1,10 @@
+{
+  "name": "golden-drums-slot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static HTML slot machine prototype for GitHub Pages.",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "devDependencies": {}
+}
