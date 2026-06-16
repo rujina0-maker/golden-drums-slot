@@ -1007,6 +1007,10 @@ body::before {
   overflow: hidden;
 }
 
+.sym.sym-N {
+  transform: translateY(-5%);
+}
+
 .fs-coin-layer {
   position: absolute;
   inset: 0;
@@ -1239,7 +1243,7 @@ body::before {
 .coin-rain {
   position: fixed;
   inset: 0;
-  z-index: 99;
+  z-index: 190;
   overflow: hidden;
   pointer-events: none;
 }
@@ -1486,7 +1490,8 @@ body::before {
   0% { transform: translate(-50%, -50%) scale(.9) rotate(0deg); opacity: 0; }
   12% { opacity: 1; }
   58% { transform: translate(calc(-50% + var(--dx, 0px) * .58), calc(-50% + var(--dy, 0px) * .44 - 90px)) scale(1.08) rotate(300deg); opacity: 1; }
-  100% { transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(.42) rotate(720deg); opacity: 0; }
+  82% { transform: translate(calc(-50% + var(--dx, 0px) * .94), calc(-50% + var(--dy, 0px) * .94)) scale(.62) rotate(620deg); opacity: .92; }
+  100% { transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(.2) rotate(720deg); opacity: 0; }
 }
 
 
@@ -2155,8 +2160,9 @@ for(let r=0;r<5;r++){
 function isWild(sym){ return sym==='w'; }
 function matchesSymbol(sym,key){ return sym===key || isWild(sym); }
 function hasDrumBridge(col){ return col.some(s=>s==='d' || isWild(s)); }
+function hasRealDrum(col){ return col.some(s=>s==='d'); }
 function symHtml(sym){
-  return `<img class="sym" src="${SYM[sym].img}" draggable="false" alt="">`;
+  return `<img class="sym sym-${sym}" src="${SYM[sym].img}" draggable="false" alt="">`;
 }
 function renderCell(r,row,sym){ const c=grid[r][row]; c.innerHTML=symHtml(sym); c.style.background=SYM[sym].bg; }
 board.forEach((col,r)=>col.forEach((s,row)=>renderCell(r,row,s)));
@@ -2377,8 +2383,6 @@ function flyCoinsToBasket(cells, matrix, maxCoins=10){
   const basket=document.getElementById('basketArt') || document.getElementById('basket');
   if(!basket || !cells.length) return wait(0);
   const target=basket.getBoundingClientRect();
-  const tx=target.left+target.width*.5;
-  const ty=target.top+target.height*.45;
   const burst=[];
   cells.slice(0,maxCoins).forEach(pos=>{
     const repeats=3;
@@ -2391,6 +2395,8 @@ function flyCoinsToBasket(cells, matrix, maxCoins=10){
     const src=el.getBoundingClientRect();
     const sx=src.left+src.width*(.42+Math.random()*.16);
     const sy=src.top+src.height*(.42+Math.random()*.16);
+    const tx=target.left+target.width*(.44+Math.random()*.12);
+    const ty=target.top+target.height*(.28+Math.random()*.08);
     const c=document.createElement('span');
     c.className='basket-fly-coin';
     c.style.setProperty('--sx', sx+'px');
@@ -2438,9 +2444,13 @@ function burstCoinsFromCells(cells, matrix, amount=18, power=1){
   }
 }
 function maxDrumRun(bd,cols){
-  let best=0,cur=0;
-  for(let r=0;r<cols;r++){ if(hasDrumBridge(bd[r])){cur++;best=Math.max(best,cur);}else cur=0; }
-  return best;
+  if(!hasRealDrum(bd[0])) return 0;
+  let run=1;
+  for(let r=1;r<cols;r++){
+    if(hasDrumBridge(bd[r])) run++;
+    else break;
+  }
+  return run;
 }
 
 async function evaluateBase(){
@@ -2665,18 +2675,20 @@ async function freeSpins(cfg, spins){
       const stop=startRollup(intensity);
       const wpAmt=document.getElementById('wpAmt');
       const before=total, after=total+win;
-      const anims=[ countUp(totalEl, before, after, dur) ];
-      if(wpAmt) anims.push(countUp(wpAmt, 0, win, dur));
+      const anims=[ countUpSkippable(totalEl, before, after, dur) ];
+      if(wpAmt) anims.push(countUpSkippable(wpAmt, 0, win, dur));
+      let crIv=null;
       if(intensity>=1){
         eventWinEffect(intensity,dur);
         burstCoinsFromCells(cells, fsCells, intensity>=2?58:30, intensity>=2?1.15:.88);
         coinFountain(intensity>=2?70:38, intensity>=2?1.28:1.02);
-        let cr=0; const crIv=setInterval(()=>{ coinFountain(intensity>=2?38:18, intensity>=2?1.22:.94); if(++cr>dur/520)clearInterval(crIv); },520);
+        let cr=0; crIv=setInterval(()=>{ coinFountain(intensity>=2?38:18, intensity>=2?1.22:.94); if(++cr>dur/520)clearInterval(crIv); },520);
       } else if(m>=2.5 || win>=2600){
         burstCoinsFromCells(cells, fsCells, 12, .62);
         coinSfx(4);
       }
       await Promise.all(anims);
+      if(crIv) clearInterval(crIv);
       stop();
       total=after;
       totalEl.classList.remove('rolling');
