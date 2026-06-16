@@ -1433,6 +1433,38 @@ body::before {
   100% { transform: translate(-50%, 78px) scale(.55) rotate(360deg); opacity: 0; }
 }
 
+.basket-fly-coin {
+  position: fixed;
+  left: var(--sx, 50vw);
+  top: var(--sy, 50vh);
+  z-index: 180;
+  width: var(--size, 26px);
+  height: var(--size, 26px);
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255,255,205,.95) 0 11%, transparent 12%),
+    radial-gradient(circle at 50% 50%, #fff08a 0 15%, #f3b82a 16% 36%, #9b5a07 37% 44%, #ffd84c 45% 60%, #b86a08 61% 100%);
+  border: 2px solid rgba(255,242,148,.95);
+  box-shadow: 0 0 14px rgba(255, 211, 54, .95), inset 0 0 0 3px rgba(255,196,28,.62);
+  filter: drop-shadow(0 7px 7px rgba(0,0,0,.52));
+  animation: flyCoinToBasket .9s cubic-bezier(.18,.8,.18,1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+.basket-fly-coin::after {
+  content: "";
+  position: absolute;
+  inset: 28%;
+  border-radius: 50%;
+  border: 2px solid rgba(125,69,0,.58);
+}
+@keyframes flyCoinToBasket {
+  0% { transform: translate(-50%, -50%) scale(.9) rotate(0deg); opacity: 0; }
+  12% { opacity: 1; }
+  58% { transform: translate(calc(-50% + var(--dx, 0px) * .58), calc(-50% + var(--dy, 0px) * .44 - 90px)) scale(1.08) rotate(300deg); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(.42) rotate(720deg); opacity: 0; }
+}
+
 
 
 /* Basket stages and big win effects */
@@ -1857,10 +1889,10 @@ function payFor(key, run){
 function buildStrip(reelIdx, bonus=false){
   const w=[]; const add=(k,n)=>{for(let i=0;i<n;i++)w.push(k);};
   add('dragon',3); add('lion',4); add('lantern',5); add('koi',6);
-  add('w', bonus ? 2 : 3);
+  add('w', bonus ? 1 : 2);
   add('A',7); add('K',8); add('Q',8); add('J',9); add('N',9);
-  add('p', 7); // 테스트: 금화 출현율 상향 (원래 4)
-  add('d', bonus ? 2 : (reelIdx===0||reelIdx===2||reelIdx===4 ? 9 : 7)); // 테스트: 베이스 북 상향, 보너스 중엔 정상(2)
+  add('p', 4);
+  add('d', bonus ? 2 : 3);
   return w;
 }
 const STRIPS = [0,1,2,3,4].map(i=>buildStrip(i));
@@ -2223,6 +2255,37 @@ function flashWinningCells(cells, matrix){
   return wait(Math.min(duration, 1350));
 }
 function countSym(bd,key){ let n=0; bd.forEach(col=>col.forEach(s=>{if(s===key)n++;})); return n; }
+function symbolCells(bd,key){
+  const cells=[];
+  bd.forEach((col,r)=>col.forEach((s,row)=>{ if(s===key) cells.push(r+'-'+row); }));
+  return cells;
+}
+function flyCoinsToBasket(cells, matrix, maxCoins=10){
+  const basket=document.getElementById('basketArt') || document.getElementById('basket');
+  if(!basket || !cells.length) return wait(0);
+  const target=basket.getBoundingClientRect();
+  const tx=target.left+target.width*.5;
+  const ty=target.top+target.height*.45;
+  cells.slice(0,maxCoins).forEach((pos,i)=>{
+    const [r,row]=pos.split('-').map(Number);
+    const el=matrix[r] && matrix[r][row];
+    if(!el) return;
+    const src=el.getBoundingClientRect();
+    const sx=src.left+src.width*.5;
+    const sy=src.top+src.height*.5;
+    const c=document.createElement('span');
+    c.className='basket-fly-coin';
+    c.style.setProperty('--sx', sx+'px');
+    c.style.setProperty('--sy', sy+'px');
+    c.style.setProperty('--dx', (tx-sx)+'px');
+    c.style.setProperty('--dy', (ty-sy)+'px');
+    c.style.setProperty('--size', (22+Math.random()*10)+'px');
+    c.style.setProperty('--delay', (i*70)+'ms');
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),1250+i*70);
+  });
+  return wait(Math.min(900, 360+cells.length*70));
+}
 function maxDrumRun(bd,cols){
   let best=0,cur=0;
   for(let r=0;r<cols;r++){ if(hasDrumBridge(bd[r])){cur++;best=Math.max(best,cur);}else cur=0; }
@@ -2239,15 +2302,17 @@ async function evaluateBase(){
   if(cells.size) await flashWinningCells(cells, grid);
 
   // 금화 → 게이지 + 잭팟 확률 판정
-  const pots=countSym(board,'w');
+  const potCells=symbolCells(board,'p');
+  const pots=potCells.length;
   if(pots>0){
+    await flyCoinsToBasket(potCells, grid, 10);
     const beforeBasket=S.basket;
-    S.basket=Math.min(100,S.basket+pots*5); // 테스트: 게이지 적립 속도 2배
+    S.basket=Math.min(100,S.basket+pots*2.4);
     coinSfx(pots); updateBasket(beforeBasket,pots);
   }
-  // ★ 잭팟은 게이지가 찰수록 확률↑, 언제든 랜덤 발동 (다 차도 보장 안 됨)
-  // 테스트: 기본 3% + 게이지 최대 +20% (원래 0.2% + 5%)
-  const jpChance = 0.03 + (S.basket/100)*0.20;
+  // 잭팟은 게이지가 찰수록 확률이 올라가지만, 다 차도 즉시 보장되지는 않습니다.
+  // 실제 카지노보다 살짝 후한 정도로 조정한 기본 0.4% + 게이지 최대 3.5%.
+  const jpChance = 0.004 + (S.basket/100)*0.035;
   if(Math.random() < jpChance){
     await wait(500);
     await jackpotBurst();
@@ -2414,8 +2479,15 @@ async function freeSpins(cfg, spins){
       setTimeout(()=>spinsStat.classList.remove('spins-added'),1400);
     }
     // 금화 게이지 적립
-    const pots=countSym(bd,'w');
-    if(pots>0){ const beforeBasket=S.basket; S.basket=Math.min(100,S.basket+pots*1.5); coinSfx(pots); updateBasket(beforeBasket,pots); }
+    const potCells=symbolCells(bd,'p');
+    const pots=potCells.length;
+    if(pots>0){
+      await flyCoinsToBasket(potCells, fsCells, 12);
+      const beforeBasket=S.basket;
+      S.basket=Math.min(100,S.basket+pots*1.1);
+      coinSfx(pots);
+      updateBasket(beforeBasket,pots);
+    }
 
     // 당첨금 차르륵 올라가기 (규모별 이펙트)
     if(win>0){
