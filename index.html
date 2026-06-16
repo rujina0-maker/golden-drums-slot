@@ -402,26 +402,41 @@ body::before {
 
 .reel-frame::before,
 .reel-frame::after {
-  content: "";
+  content: "REEL WAYS";
   position: absolute;
   top: 8px;
   bottom: 8px;
-  width: 5px;
-  border-radius: 999px;
-  background: repeating-linear-gradient(180deg, var(--neon-pink) 0 12px, var(--neon-blue) 12px 24px);
+  width: 28px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 1000;
+  letter-spacing: .4px;
+  text-shadow: 0 2px 2px rgba(0,0,0,.85), 0 0 8px currentColor;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.22) 0 3px, transparent 3px 8px),
+    linear-gradient(180deg, rgba(255,45,213,.35), rgba(24,215,255,.28)),
+    #250313;
   box-shadow: 0 0 12px currentColor;
-  opacity: .8;
+  opacity: .95;
 }
 
-.reel-frame::before { left: 4px; color: var(--neon-pink); }
-.reel-frame::after { right: 4px; color: var(--neon-blue); }
+.reel-frame::before { left: 4px; color: #ffd96f; }
+.reel-frame::after { right: 4px; color: #ffd96f; }
 
 .reels {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 5px;
   position: relative;
-  padding: 4px;
+  padding: 4px 30px;
   border-radius: 10px;
   background:
     linear-gradient(180deg, rgba(255, 238, 170, .2), transparent 12%, transparent 88%, rgba(255, 238, 170, .12)),
@@ -1750,7 +1765,7 @@ body::before {
 
   <div class="reel-frame">
     <div class="reels" id="reels"></div>
-    <div class="win-banner" id="winBanner"><span id="winBannerText">BIG WIN!</span></div>
+    <div class="win-banner" id="winBanner"><span id="winBannerText"></span></div>
   </div>
 
   <div class="bet-panel">
@@ -1865,6 +1880,20 @@ const SYMBG = {
   J: "radial-gradient(circle at 50% 38%,#7a4a0e,#2e1803)",
   N: "radial-gradient(circle at 50% 38%,#1a2a7a,#080e30)",
 };
+Object.assign(SYMIMG, {
+  w: "assets/symbol-wild.png",
+  dragon: "assets/symbol-dragon.png",
+  lion: "assets/symbol-lion.png",
+  lantern: "assets/symbol-lantern.png",
+  koi: "assets/symbol-koi.png",
+  d: "assets/symbol-drum.png",
+  p: "assets/symbol-coins.png",
+  A: "assets/symbol-A.svg",
+  K: "assets/symbol-K.svg",
+  Q: "assets/symbol-Q.svg",
+  J: "assets/symbol-J.svg",
+  N: "assets/symbol-9.svg"
+});
 const SYM = {
   w: { img:SYMIMG.w, bg:SYMBG.w, pays:null },
   dragon: { img:SYMIMG.dragon, bg:SYMBG.dragon, pays:{3:40, 4:120, 5:400} },
@@ -2010,7 +2039,7 @@ function countUpSkippable(el, from, to, dur, onTick){
 async function longWinCelebration(amount, bet, el){
   const mult=amount/bet;
   const level=mult>=20?3:2;
-  const dur=mult>=20?30000:15000;
+  const dur=mult>=50?60000:mult>=20?36000:18000;
   showBanner(level>=3?'MEGA WIN!':'BIG WIN!', 1800);
   winFanfare(true);
   eventWinEffect(level, dur);
@@ -2031,13 +2060,20 @@ async function longWinCelebration(amount, bet, el){
 // ============ 베이스 보드 DOM ============
 const reelsEl=document.getElementById('reels');
 const grid=[]; let board=[];
+const INITIAL_BOARD = [
+  ['d','p','lion'],
+  ['lantern','w','K'],
+  ['dragon','p','A'],
+  ['lantern','Q','p'],
+  ['koi','J','dragon']
+].map(col => col.map(sym => SYM[sym] ? sym : rand(STRIPS[0])));
 for(let r=0;r<5;r++){
   const reel=document.createElement('div'); reel.className='reel'; reel.id='reel'+r;
   grid.push([]); board.push([]);
   for(let row=0;row<3;row++){
     const cell=document.createElement('div'); cell.className='cell';
     reel.appendChild(cell); grid[r].push(cell);
-    board[r].push(rand(STRIPS[r]));
+    board[r].push(INITIAL_BOARD[r]?.[row] || rand(STRIPS[r]));
   }
   reelsEl.appendChild(reel);
 }
@@ -2354,6 +2390,8 @@ function hideBanner(){
   if(!b) return;
   clearTimeout(b._tm);
   b.classList.remove('show');
+  const t=document.getElementById('winBannerText');
+  if(t) t.textContent='';
 }
 
 // ============ 보너스: 판 선택 → 프리스핀 ============
@@ -2494,7 +2532,7 @@ async function freeSpins(cfg, spins){
       await flashWinningCells(cells, fsCells);
       const m = win / bet;                        // 베팅 대비 배수
       const intensity = m>=30 ? 3 : m>=12 ? 2 : m>=5 ? 1 : 0;
-      const dur = intensity>=3 ? 30000 : intensity>=2 ? 18000 : intensity>=1 ? 4200 : 1000;
+      const dur = intensity>=3 ? 45000 : intensity>=2 ? 30000 : intensity>=1 ? 8000 : 1000;
       const labels = [null,'BIG WIN','MEGA WIN','SUPER MEGA WIN'];
       const tierCls = [null,'big','mega','super'][intensity];
 
