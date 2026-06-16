@@ -1378,9 +1378,9 @@ body::before {
 .basket-art {
   position: absolute;
   left: 50%;
-  top: 0;
-  width: min(100%, 360px);
-  height: 150px;
+  top: 4px;
+  width: min(100%, 350px);
+  height: 146px;
   transform: translateX(-50%);
   object-fit: contain;
   z-index: 5;
@@ -1412,8 +1412,8 @@ body::before {
 .basket.pop .basket-art { transform: translateX(-50%) scale(1.055); }
 .basket.closed .basket-art,
 .basket.closing .basket-art {
-  transform: translateX(-50%) translateY(4px) scale(.98);
-  filter: brightness(1.28) drop-shadow(0 0 18px rgba(255,226,89,.9));
+  transform: translateX(-50%) translateY(5px) scale(.985);
+  filter: brightness(1.18) drop-shadow(0 0 18px rgba(255,226,89,.78));
 }
 @keyframes coinIntoBasket {
   0% { transform: translate(-50%, -8px) scale(.65) rotate(0deg); opacity: 0; }
@@ -1425,29 +1425,33 @@ body::before {
 
 
 /* Basket stages and big win effects */
-.basket-lid-slam {
+.basket-lid-cover {
   position: absolute;
   left: 50%;
-  top: -12px;
-  z-index: 10;
-  width: min(88%, 330px);
-  height: 82px;
-  transform: translateX(-50%) translateY(-74px) rotate(-13deg);
-  transform-origin: 50% 90%;
-  border-radius: 50% 50% 28px 28px;
+  top: -8px;
+  z-index: 11;
+  width: min(92%, 330px);
+  height: 78px;
+  object-fit: contain;
   opacity: 0;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 0 5%, #0b4eb7 7% 28%, #ffe06f 30% 35%, #bd1711 37% 63%, #ffe06f 65% 70%, #0b4eb7 72% 93%, transparent 95%),
-    linear-gradient(180deg, #fff3a3, #d49322 45%, #6a2704);
-  border: 3px solid #ffe58a;
-  box-shadow: inset 0 4px 9px rgba(255,255,255,.32), 0 0 22px rgba(255,218,82,.74);
+  transform: translateX(-50%) translateY(-92px) scale(1.04);
+  transform-origin: 50% 70%;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,.55)) drop-shadow(0 0 18px rgba(255,223,89,.48));
 }
-.basket.closing .basket-lid-slam,
-.basket.closed .basket-lid-slam {
+.basket.closing .basket-lid-cover {
   opacity: 1;
-  transform: translateX(-50%) translateY(38px) rotate(0deg);
-  transition: transform .72s cubic-bezier(.2, 1.2, .2, 1), opacity .12s;
+  animation: lidDrop .76s cubic-bezier(.18, 1.22, .2, 1) forwards;
+}
+.basket.closed .basket-lid-cover {
+  opacity: 1;
+  transform: translateX(-50%) translateY(30px) scale(1);
+}
+@keyframes lidDrop {
+  0% { transform: translateX(-50%) translateY(-92px) scale(1.04); }
+  68% { transform: translateX(-50%) translateY(36px) scale(1.02); }
+  82% { transform: translateX(-50%) translateY(24px) scale(.985); }
+  100% { transform: translateX(-50%) translateY(30px) scale(1); }
 }
 .event-flash {
   position: fixed;
@@ -1627,7 +1631,7 @@ body::before {
       <div class="basket" id="basket" aria-label="Jackpot pot">
         <div class="basket-aura"></div>
         <div class="basket-fill" id="basketFill"></div>
-        <img class="basket-art" id="basketArt" src="assets/jackpot-basket-empty.png" alt=""><div class="basket-lid-slam"></div>
+        <img class="basket-art" id="basketArt" src="assets/jackpot-basket-empty.png" alt=""><img class="basket-lid-cover" id="basketLid" src="assets/jackpot-lid.png" alt="">
         <div class="basket-coins" id="basketCoins"></div>
       </div>
       <span class="basket-percent" id="basketPct">0%</span>
