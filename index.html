@@ -1925,10 +1925,10 @@ Object.assign(SYMIMG, {
 });
 const SYM = {
   w: { img:SYMIMG.w, bg:SYMBG.w, pays:null },
-  dragon: { img:SYMIMG.dragon, bg:SYMBG.dragon, pays:{3:40, 4:120, 5:400} },
-  lion: { img:SYMIMG.lion, bg:SYMBG.lion, pays:{3:25, 4:70,  5:200} },
-  lantern: { img:SYMIMG.lantern, bg:SYMBG.lantern, pays:{3:15, 4:40,  5:120} },
-  koi: { img:SYMIMG.koi, bg:SYMBG.koi, pays:{3:10, 4:30,  5:80} },
+  dragon: { img:SYMIMG.dragon, bg:SYMBG.dragon, pays:{3:45, 4:130, 5:420} },
+  lion: { img:SYMIMG.lion, bg:SYMBG.lion, pays:{3:28, 4:80,  5:230} },
+  lantern: { img:SYMIMG.lantern, bg:SYMBG.lantern, pays:{3:16, 4:45,  5:130} },
+  koi: { img:SYMIMG.koi, bg:SYMBG.koi, pays:{3:10, 4:30,  5:90} },
   d: { img:SYMIMG.d, bg:SYMBG.d, pays:null },
   p: { img:SYMIMG.p, bg:SYMBG.p, pays:null },
   A: { img:SYMIMG.A, bg:SYMBG.A, pays:{3:6, 4:15, 5:40} },
@@ -1946,9 +1946,9 @@ function payFor(key, run){
 }
 function buildStrip(reelIdx, bonus=false){
   const w=[]; const add=(k,n)=>{for(let i=0;i<n;i++)w.push(k);};
-  add('dragon',3); add('lion',4); add('lantern',5); add('koi',6);
+  add('dragon',4); add('lion',5); add('lantern',6); add('koi',7);
   add('w', bonus ? 1 : 2);
-  add('A',7); add('K',8); add('Q',8); add('J',9); add('N',9);
+  add('A',5); add('K',6); add('Q',6); add('J',7); add('N',7);
   add('p', 4);
   add('d', bonus ? 2 : 3);
   return w;
@@ -2329,16 +2329,21 @@ function evalWays(bd, cols, betUnit){
   let win=0; const cells=new Set();
   for(const key of Object.keys(SYM)){
     if(!SYM[key].pays)continue;
-    let ways=1, run=0; const hits=[];
+    let ways=1, run=0, actual=0; const hits=[];
     for(let r=0;r<cols;r++){
       const matchingRows=[];
-      bd[r].forEach((s,row)=>{ if(matchesSymbol(s,key)) matchingRows.push(row); });
+      bd[r].forEach((s,row)=>{
+        if(matchesSymbol(s,key)){
+          matchingRows.push(row);
+          if(s===key) actual++;
+        }
+      });
       const cnt=matchingRows.length;
       if(cnt===0)break;
       ways*=cnt; run++;
       matchingRows.forEach(row=>hits.push(r+'-'+row));
     }
-    if(run>=3){
+    if(run>=3 && actual>0){
       win += payFor(key,run)*ways*betUnit;
       hits.forEach(c=>cells.add(c));
     }
