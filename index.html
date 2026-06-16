@@ -2769,43 +2769,60 @@ function jackpotCardSvg(t, back=false){
     return `<svg class="jp-card-art" viewBox="0 0 120 154" aria-hidden="true">
       <defs>
         <linearGradient id="bGold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#fff1a8"/><stop offset=".45" stop-color="#d79527"/><stop offset="1" stop-color="#6f3b08"/>
+          <stop offset="0" stop-color="#fff8ba"/><stop offset=".42" stop-color="#e8a72c"/><stop offset=".72" stop-color="#9c5608"/><stop offset="1" stop-color="#ffe17a"/>
         </linearGradient>
         <radialGradient id="bRed" cx=".5" cy=".25" r=".78">
-          <stop offset="0" stop-color="#e64425"/><stop offset=".55" stop-color="#8b1210"/><stop offset="1" stop-color="#2b0304"/>
+          <stop offset="0" stop-color="#f05a32"/><stop offset=".42" stop-color="#a51212"/><stop offset="1" stop-color="#220103"/>
+        </radialGradient>
+        <radialGradient id="bGlow" cx=".5" cy=".45" r=".55">
+          <stop offset="0" stop-color="#fff2a3" stop-opacity=".65"/><stop offset=".52" stop-color="#ffb22f" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <rect x="5" y="5" width="110" height="144" rx="13" fill="url(#bRed)" stroke="url(#bGold)" stroke-width="3"/>
-      <path d="M18 24h84M18 130h84" stroke="#ffd86a" stroke-width="2" opacity=".8"/>
-      <circle cx="60" cy="76" r="31" fill="none" stroke="url(#bGold)" stroke-width="5"/>
-      <path d="M60 38l10 27 29 2-22 18 7 29-24-16-24 16 7-29-22-18 29-2z" fill="url(#bGold)" stroke="#fff0a8" stroke-width="1.5"/>
-      <text x="60" y="82" text-anchor="middle" font-size="18" font-weight="900" fill="#5a0707">JP</text>
-      <text x="60" y="118" text-anchor="middle" font-size="11" font-weight="900" fill="#ffe9a0">PICK</text>
+      <rect x="4" y="4" width="112" height="146" rx="14" fill="#160101" stroke="url(#bGold)" stroke-width="4"/>
+      <rect x="9" y="9" width="102" height="136" rx="10" fill="url(#bRed)" stroke="#fff0a0" stroke-width="1.2" opacity=".96"/>
+      <rect x="14" y="16" width="92" height="122" rx="7" fill="none" stroke="#ffd86a" stroke-width="1.4" opacity=".82"/>
+      <circle cx="60" cy="77" r="44" fill="url(#bGlow)"/>
+      <path d="M24 34c9-5 17-5 25 0M71 34c8-5 16-5 25 0M24 120c9 5 17 5 25 0M71 120c8 5 16 5 25 0" fill="none" stroke="url(#bGold)" stroke-width="2.1" opacity=".9"/>
+      <g transform="translate(60 76)">
+        <path d="M0-35l8 23 24 1-19 14 7 23L0 12-20 26l7-23-19-14 24-1z" fill="url(#bGold)" stroke="#fff5b8" stroke-width="1.7"/>
+        <circle cx="0" cy="0" r="17" fill="#7f0808" stroke="#ffe58e" stroke-width="3"/>
+        <text x="0" y="6" text-anchor="middle" font-size="18" font-weight="900" fill="#ffe794">JP</text>
+      </g>
+      <text x="60" y="124" text-anchor="middle" font-size="12" font-weight="900" fill="#ffeeb0" letter-spacing="1.2">PICK</text>
     </svg>`;
   }
   return `<svg class="jp-card-art" viewBox="0 0 120 154" aria-hidden="true">
     <defs>
       <linearGradient id="g${t}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="${tier.glow}"/><stop offset=".42" stop-color="${tier.hue}"/><stop offset="1" stop-color="#5b3207"/>
+        <stop offset="0" stop-color="#fff9cf"/><stop offset=".28" stop-color="${tier.glow}"/><stop offset=".56" stop-color="${tier.hue}"/><stop offset="1" stop-color="#7a3e05"/>
       </linearGradient>
       <radialGradient id="r${t}" cx=".5" cy=".28" r=".78">
-        <stop offset="0" stop-color="${tier.base}"/><stop offset=".7" stop-color="#300405"/><stop offset="1" stop-color="#080000"/>
+        <stop offset="0" stop-color="${tier.base}"/><stop offset=".6" stop-color="#3a0505"/><stop offset="1" stop-color="#070000"/>
+      </radialGradient>
+      <radialGradient id="coin${t}" cx=".36" cy=".28" r=".72">
+        <stop offset="0" stop-color="#fff8bc"/><stop offset=".28" stop-color="#ffd64c"/><stop offset=".58" stop-color="#c97909"/><stop offset="1" stop-color="#7d3d04"/>
       </radialGradient>
       <filter id="s${t}" x="-30%" y="-30%" width="160%" height="160%">
         <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".7"/>
         <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="${tier.hue}" flood-opacity=".65"/>
       </filter>
     </defs>
-    <rect x="5" y="5" width="110" height="144" rx="13" fill="url(#r${t})" stroke="url(#g${t})" stroke-width="3"/>
-    <path d="M17 24h86M17 130h86" stroke="${tier.hue}" stroke-width="2" opacity=".75"/>
-    <ellipse cx="60" cy="82" rx="36" ry="16" fill="#2a0704" opacity=".72"/>
+    <rect x="4" y="4" width="112" height="146" rx="14" fill="#130101" stroke="url(#g${t})" stroke-width="4"/>
+    <rect x="9" y="9" width="102" height="136" rx="10" fill="url(#r${t})" stroke="#fff3a5" stroke-width="1.2"/>
+    <path d="M17 25h86M17 129h86" stroke="${tier.hue}" stroke-width="2" opacity=".85"/>
+    <path d="M20 33c8-4 14-4 21 0M79 33c7-4 13-4 21 0M20 121c8 4 14 4 21 0M79 121c7 4 13 4 21 0" fill="none" stroke="url(#g${t})" stroke-width="2" opacity=".9"/>
+    <ellipse cx="60" cy="91" rx="40" ry="18" fill="#180100" opacity=".65"/>
     <g filter="url(#s${t})">
-      <path d="M60 32c18 0 32 10 32 26 0 20-14 33-32 33S28 78 28 58c0-16 14-26 32-26z" fill="url(#g${t})"/>
-      <ellipse cx="60" cy="50" rx="22" ry="9" fill="#fff1a8" opacity=".55"/>
-      <path d="M33 69c14 12 40 12 54 0-3 26-14 44-27 44S36 95 33 69z" fill="url(#g${t})"/>
-      <path d="M42 69c7 5 29 5 36 0" fill="none" stroke="#fff7c5" stroke-width="3" opacity=".7"/>
+      <path d="M28 69c4-14 17-22 32-22s28 8 32 22v25c0 14-14 25-32 25S28 108 28 94z" fill="url(#g${t})" stroke="#fff0a4" stroke-width="2"/>
+      <ellipse cx="60" cy="69" rx="32" ry="16" fill="#2d0602" stroke="url(#g${t})" stroke-width="4"/>
+      <ellipse cx="60" cy="64" rx="25" ry="10" fill="#fff1a8" opacity=".58"/>
+      ${[38,49,60,71,82].map((x,i)=>`<circle cx="${x}" cy="${58+i%2*8}" r="8" fill="url(#coin${t})" stroke="#fff0a4" stroke-width="1.2"/>`).join('')}
+      ${[47,58,69].map((x,i)=>`<circle cx="${x}" cy="${49+i%2*6}" r="7" fill="url(#coin${t})" stroke="#fff0a4" stroke-width="1.1"/>`).join('')}
+      <path d="M34 91c13 9 39 9 52 0" fill="none" stroke="#fff7c5" stroke-width="3" opacity=".62"/>
+      <circle cx="60" cy="96" r="14" fill="#7b2605" stroke="#ffe58e" stroke-width="2"/>
+      <text x="60" y="101" text-anchor="middle" font-size="13" font-weight="900" fill="#ffe794">福</text>
     </g>
-    <text x="60" y="117" text-anchor="middle" font-size="18" font-weight="900" fill="#fff7d2" stroke="#351000" stroke-width="1">${tier.label}</text>
+    <text x="60" y="132" text-anchor="middle" font-size="17" font-weight="900" fill="#fff7d2" stroke="#351000" stroke-width="1.2" letter-spacing="1">${tier.label}</text>
   </svg>`;
 }
 function jackpotCardGame(){
