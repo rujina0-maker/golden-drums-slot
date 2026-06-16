@@ -1456,30 +1456,85 @@ body::before {
 .event-flash {
   position: fixed;
   inset: 0;
-  z-index: 105;
+  z-index: 98;
   pointer-events: none;
   opacity: 0;
   background:
-    radial-gradient(circle at 50% 60%, rgba(255,242,153,.9), transparent 30%),
-    radial-gradient(circle at 50% 100%, rgba(255,95,30,.55), transparent 44%);
+    radial-gradient(ellipse at 50% 100%, rgba(255,222,70,.72), transparent 36%),
+    linear-gradient(0deg, rgba(255,107,24,.28), transparent 44%);
 }
-.event-flash.show { animation: eventFlash .9s ease-out forwards; }
+.event-flash.show { animation: eventFlash .62s ease-out forwards; }
 @keyframes eventFlash {
   0% { opacity: 0; }
-  12% { opacity: .95; }
+  16% { opacity: .72; }
   100% { opacity: 0; }
 }
-.coin.fountain {
-  top: auto;
-  bottom: -42px;
-  animation: fountainUp var(--dur, 1.2s) cubic-bezier(.16,.78,.22,1) forwards;
-  filter: drop-shadow(0 0 8px rgba(255, 207, 62, .95));
+.money-pop {
+  position: absolute;
+  left: var(--x, 50vw);
+  bottom: -84px;
+  z-index: 100;
+  width: var(--w, 44px);
+  height: var(--h, 44px);
+  border-radius: 50%;
+  will-change: transform, opacity;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 0 9px rgba(255, 210, 49, .98)) drop-shadow(0 7px 7px rgba(0,0,0,.58));
+  animation: goldCoinBurst var(--dur, 1.35s) cubic-bezier(.13,.83,.18,1) forwards;
 }
-@keyframes fountainUp {
-  0% { transform: translate(0, 0) scale(.65) rotate(0deg); opacity: 0; }
-  12% { opacity: 1; }
-  72% { opacity: 1; }
-  100% { transform: translate(var(--dx, 0px), var(--dy, -520px)) scale(1.15) rotate(820deg); opacity: 0; }
+.money-pop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255,242,148,.95);
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255,255,205,.95) 0 10%, transparent 11%),
+    radial-gradient(circle at 50% 50%, #fff08a 0 14%, #f3b82a 15% 34%, #9b5a07 35% 43%, #ffd84c 44% 58%, #b86a08 59% 100%);
+  box-shadow: inset 0 0 0 3px rgba(255,196,28,.72), inset 0 -6px 8px rgba(92,45,0,.42);
+}
+.money-pop::after {
+  content: "";
+  position: absolute;
+  inset: 27%;
+  border-radius: 50%;
+  border: 2px solid rgba(125,69,0,.66);
+  box-shadow: inset 0 2px 3px rgba(255,255,195,.65);
+}
+.money-pop.edge {
+  height: max(8px, calc(var(--h, 44px) * .22));
+  border-radius: 999px;
+}
+.money-pop.edge::before,
+.money-pop.edge::after {
+  border-radius: 999px;
+}
+.coin-spark {
+  position: absolute;
+  left: var(--x, 50vw);
+  bottom: var(--bottom, 120px);
+  z-index: 99;
+  width: var(--s, 10px);
+  height: var(--s, 10px);
+  border-radius: 50%;
+  background: #fff0a3;
+  box-shadow: 0 0 20px 8px rgba(255,211,54,.82);
+  pointer-events: none;
+  animation: coinSpark .55s ease-out forwards;
+}
+@keyframes goldCoinBurst {
+  0% { transform: translate(-50%, 0) rotateZ(0deg) rotateY(0deg) scale(.5); opacity: 0; }
+  8% { opacity: 1; }
+  44% { transform: translate(calc(-50% + var(--dx, 0px) * .48), var(--apex, -520px)) rotateZ(calc(var(--rz, 720deg) * .5)) rotateY(var(--flip, 900deg)) scale(1.12); opacity: 1; }
+  74% { opacity: .98; }
+  100% { transform: translate(calc(-50% + var(--dx, 0px)), var(--land, -150px)) rotateZ(var(--rz, 720deg)) rotateY(calc(var(--flip, 900deg) * 1.7)) scale(.84); opacity: 0; }
+}
+@keyframes coinSpark {
+  0% { transform: translate(-50%, 0) scale(.25); opacity: 0; }
+  25% { opacity: .95; }
+  100% { transform: translate(calc(-50% + var(--dx, 0px)), var(--dy, -90px)) scale(1.8); opacity: 0; }
+}
 }
 
 </style>
@@ -1869,6 +1924,53 @@ function countUp(el, from, to, dur){
     requestAnimationFrame(frame);
   });
 }
+function countUpSkippable(el, from, to, dur, onTick){
+  return new Promise(res=>{
+    let done=false;
+    const start=performance.now();
+    const finish=()=>{
+      if(done)return;
+      done=true;
+      cleanup();
+      el.textContent=fmt(Math.floor(to));
+      res();
+    };
+    const skip=(ev)=>{
+      if(ev && ev.target && ev.target.closest && ev.target.closest('.chip,.util-btn')) return;
+      finish();
+    };
+    const cleanup=()=>document.removeEventListener('pointerdown', skip);
+    document.addEventListener('pointerdown', skip);
+    function frame(now){
+      if(done)return;
+      const p=Math.min(1,(now-start)/dur);
+      const ease=1-Math.pow(1-p,2.35);
+      el.textContent=fmt(Math.floor(from+(to-from)*ease));
+      if(onTick) onTick(p);
+      if(p<1) requestAnimationFrame(frame); else finish();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+async function longWinCelebration(amount, bet, el){
+  const mult=amount/bet;
+  const level=mult>=20?3:2;
+  const dur=mult>=20?30000:15000;
+  showBanner(level>=3?'MEGA WIN!':'BIG WIN!', dur);
+  winFanfare(true);
+  eventWinEffect(level, dur);
+  let pulse=0;
+  const interval=setInterval(()=>{
+    coinFountain(level>=3?46:30, level>=3?1.28:1.08);
+    if(++pulse%3===0) jackpotDrumroll(520);
+  }, level>=3?520:680);
+  el.classList.add('win-anim');
+  await countUpSkippable(el, 0, amount, dur, p=>{
+    if(p>.985) clearInterval(interval);
+  });
+  clearInterval(interval);
+  coinFountain(level>=3?70:42, level>=3?1.22:1.05);
+}
 
 // ============ 베이스 보드 DOM ============
 const reelsEl=document.getElementById('reels');
@@ -2151,18 +2253,19 @@ async function evaluateBase(){
     const wd=document.getElementById('winDisplay');
     wd.textContent=fmt(totalWin); wd.classList.add('win-anim');
     const m=totalWin/bet;
-    if(m>=20){ showBanner('MEGA WIN!'); winFanfare(true); rainCoins(40); }
-    else if(m>=8){ showBanner('BIG WIN!'); winFanfare(true); rainCoins(20); }
+    if(m>=20){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
+    else if(m>=8){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
     else if(m>=1){ winFanfare(false); }
     else coinSfx(2);
     updateHud();
   }
 }
-function showBanner(txt){
+function showBanner(txt, hold=2200){
   document.getElementById('winBannerText').textContent=txt;
   const b=document.getElementById('winBanner');
   b.classList.add('show');
-  setTimeout(()=>b.classList.remove('show'),2200);
+  clearTimeout(b._tm);
+  b._tm=setTimeout(()=>b.classList.remove('show'),hold);
 }
 
 // ============ 보너스: 판 선택 → 프리스핀 ============
@@ -2293,7 +2396,7 @@ async function freeSpins(cfg, spins){
       await flashWinningCells(cells, fsCells);
       const m = win / bet;                        // 베팅 대비 배수
       const intensity = m>=30 ? 3 : m>=12 ? 2 : m>=5 ? 1 : 0;
-      const dur = [1000,1700,2400,3200][intensity];
+      const dur = intensity>=3 ? 30000 : intensity>=2 ? 18000 : intensity>=1 ? 4200 : 1000;
       const labels = [null,'BIG WIN','MEGA WIN','SUPER MEGA WIN'];
       const tierCls = [null,'big','mega','super'][intensity];
 
@@ -2315,7 +2418,7 @@ async function freeSpins(cfg, spins){
       if(wpAmt) anims.push(countUp(wpAmt, 0, win, dur));
       if(intensity>=1){
         eventWinEffect(intensity,dur);
-        let cr=0; const crIv=setInterval(()=>{ rainCoins(intensity>=2?6:3); if(++cr>dur/220)clearInterval(crIv); },220);
+        let cr=0; const crIv=setInterval(()=>{ coinFountain(intensity>=2?28:10, intensity>=2?1.18:.92); if(++cr>dur/520)clearInterval(crIv); },520);
       }
       await Promise.all(anims);
       stop();
@@ -2339,7 +2442,7 @@ async function freeSpins(cfg, spins){
 
   // 종료
   total=Math.floor(total);
-  winFanfare(true); rainCoins(30);
+  winFanfare(true); eventWinEffect(2,1300);
   closeBtn.classList.add('show');
   return new Promise(resolve=>{
     closeBtn.onclick=()=>{
@@ -2364,7 +2467,7 @@ function jackpotBurst(){
     document.getElementById('basket').classList.remove('bursting','closed','closing');
     const tierEl=document.getElementById('jp'+tier[0].toUpperCase()+tier.slice(1));
     tierEl.classList.add('flash');
-    ttiriri(); rainCoins(60);
+    ttiriri(); eventWinEffect(3,1700);
     const ov=document.getElementById('jpOverlay');
     document.getElementById('jpOvTitle').textContent=tier.toUpperCase()+' JACKPOT!';
     const amtEl=document.getElementById('jpOvAmount');
@@ -2526,18 +2629,43 @@ function jackpotDrumroll(ms=900){
 }
 function coinFountain(n=34, power=1){
   const cont=document.getElementById('coinRain');
-  for(let i=0;i<n;i++){
-    const c=document.createElement('div');
-    c.className='coin fountain';
-    c.textContent=Math.random()<0.5?'\uD83E\DE99':'\uD83D\DCB0';
-    c.style.left=(8+Math.random()*84)+'vw';
-    c.style.setProperty('--dx', ((Math.random()-.5)*260*power)+'px');
-    c.style.setProperty('--dy', (-(330+Math.random()*310)*power)+'px');
-    c.style.setProperty('--dur', (.9+Math.random()*.75)+'s');
-    c.style.animationDelay=(Math.random()*.36)+'s';
-    c.style.fontSize=(22+Math.random()*20)+'px';
-    cont.appendChild(c);
-    setTimeout(()=>c.remove(),1900);
+  const waves=power>=1.3?3:power>=1.1?2:1;
+  for(let wave=0; wave<waves; wave++){
+    const count=Math.ceil(n/waves);
+    for(let i=0;i<count;i++){
+      const c=document.createElement('div');
+      c.className='money-pop' + (Math.random()<.28 ? ' edge' : '');
+      const origin=50+(Math.random()-.5)*40;
+      const side=(Math.random()<.5?-1:1);
+      const spread=(45+Math.random()*230)*power*side;
+      const apex=-(300+Math.random()*360)*power;
+      const land=-(50+Math.random()*230)*power;
+      const size=24+Math.random()*34*power;
+      c.style.setProperty('--x', origin+'vw');
+      c.style.setProperty('--dx', spread+'px');
+      c.style.setProperty('--apex', apex+'px');
+      c.style.setProperty('--land', land+'px');
+      c.style.setProperty('--rz', ((side>0?1:-1)*(480+Math.random()*980))+'deg');
+      c.style.setProperty('--flip', (720+Math.random()*1260)+'deg');
+      c.style.setProperty('--dur', (.9+Math.random()*.78+wave*.1)+'s');
+      c.style.setProperty('--w', size+'px');
+      c.style.setProperty('--h', size+'px');
+      c.style.animationDelay=(wave*.15+Math.random()*.16)+'s';
+      cont.appendChild(c);
+      setTimeout(()=>c.remove(),2500+wave*220);
+    }
+    for(let s=0;s<Math.max(5, Math.floor(count/5));s++){
+      const sp=document.createElement('div');
+      sp.className='coin-spark';
+      sp.style.setProperty('--x', (38+Math.random()*24)+'vw');
+      sp.style.setProperty('--bottom', (95+Math.random()*260)+'px');
+      sp.style.setProperty('--dx', ((Math.random()-.5)*180)+'px');
+      sp.style.setProperty('--dy', (-(45+Math.random()*130))+'px');
+      sp.style.setProperty('--s', (5+Math.random()*10)+'px');
+      sp.style.animationDelay=(wave*.15+Math.random()*.2)+'s';
+      cont.appendChild(sp);
+      setTimeout(()=>sp.remove(),1200+wave*180);
+    }
   }
 }
 function eventWinEffect(level=1, duration=1000){
@@ -2547,8 +2675,12 @@ function eventWinEffect(level=1, duration=1000){
     void flash.offsetWidth;
     flash.classList.add('show');
   }
-  jackpotDrumroll(Math.min(1500, duration));
-  coinFountain(level>=3?82:level>=2?58:36, level>=3?1.35:level>=2?1.15:1);
+  const heavy=level>=3;
+  jackpotDrumroll(Math.min(1700, duration));
+  if(heavy) dungDungDung();
+  coinFountain(heavy?132:level>=2?88:52, heavy?1.45:level>=2?1.22:1);
+  setTimeout(()=>coinFountain(heavy?76:42, heavy?1.25:1.05), heavy?360:260);
+  if(heavy) setTimeout(()=>coinFountain(54,1.12),720);
 }
 
 function rainCoins(n){
