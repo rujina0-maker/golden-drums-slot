@@ -323,6 +323,7 @@ body::before {
   bottom: 9px;
   height: 36px;
   pointer-events: none;
+  display: none;
 }
 
 .coin-chip {
@@ -2027,16 +2028,7 @@ function updateJp(){
 }
 function buildBasketCoins(pct){
   const coins=document.getElementById('basketCoins');
-  const count=Math.min(20,Math.floor(pct/5));
-  coins.innerHTML='';
-  for(let i=0;i<count;i++){
-    const c=document.createElement('span');
-    c.className='coin-chip';
-    c.style.left=(8 + (i*17)%76)+'%';
-    c.style.bottom=(Math.floor(i/5)*7 + (i%2)*2)+'px';
-    c.style.transform='rotate('+(i*23%360)+'deg)';
-    coins.appendChild(c);
-  }
+  if(coins) coins.innerHTML='';
 }
 function animateBasketGain(count){
   const basket=document.getElementById('basket');
