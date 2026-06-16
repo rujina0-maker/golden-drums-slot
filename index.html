@@ -715,12 +715,12 @@ body::before {
   box-shadow: inset 0 2px 4px rgba(255, 255, 255, .2);
 }
 
-.chip[data-mult="1"] { background: radial-gradient(circle at 38% 25%, #9ed4ff, #1c62c8 64%, #09265d); }
-.chip[data-mult="2"] { background: radial-gradient(circle at 38% 25%, #9dffc1, #168b4b 64%, #06331d); }
-.chip[data-mult="3"] { background: radial-gradient(circle at 38% 25%, #ffb0a4, #cf2b2b 64%, #5c0707); }
-.chip[data-mult="5"] { background: radial-gradient(circle at 38% 25%, #e1b4ff, #7834c6 64%, #2f0a5d); }
-.chip[data-mult="10"] { background: radial-gradient(circle at 38% 25%, #ffe48d, #d68117 64%, #5c2b04); }
-.chip[data-mult="max"] { background: radial-gradient(circle at 38% 25%, #6a6a6a, #1b1b1b 70%); border-color: #ffe173; color: #ffe173; }
+.chip[data-bet-index="0"] { background: radial-gradient(circle at 38% 25%, #9ed4ff, #1c62c8 64%, #09265d); }
+.chip[data-bet-index="1"] { background: radial-gradient(circle at 38% 25%, #9dffc1, #168b4b 64%, #06331d); }
+.chip[data-bet-index="2"] { background: radial-gradient(circle at 38% 25%, #ffb0a4, #cf2b2b 64%, #5c0707); }
+.chip[data-bet-index="3"] { background: radial-gradient(circle at 38% 25%, #e1b4ff, #7834c6 64%, #2f0a5d); }
+.chip[data-bet-index="4"] { background: radial-gradient(circle at 38% 25%, #ffe48d, #d68117 64%, #5c2b04); }
+.chip[data-bet-index="5"] { background: radial-gradient(circle at 38% 25%, #6a6a6a, #1b1b1b 70%); border-color: #ffe173; color: #ffe173; }
 
 .chip.selected {
   transform: translateY(-1px) scale(1.045);
@@ -1353,19 +1353,30 @@ body::before {
   font-size: clamp(23px, 6.6vw, 36px);
 }
 .jp-grid {
-  position: relative;
-  z-index: 5;
+  position: absolute;
+  z-index: 6;
+  left: 14px;
+  right: 14px;
+  top: 68px;
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  width: min(148px, 34%);
+  justify-content: space-between;
+  gap: 8px min(40%, 178px);
+  width: auto;
 }
-.jp-tier { padding: 5px 4px 6px; }
+.jp-tier {
+  min-height: 51px;
+  padding: 7px 6px 6px;
+}
+.jp-name { font-size: 11px; }
+.jp-val { font-size: clamp(15px, 4.1vw, 21px); }
 .basket-row {
   position: absolute;
   z-index: 3;
   left: 50%;
-  top: 74px;
-  width: min(72%, 360px);
-  height: 158px;
+  top: 76px;
+  width: min(56%, 286px);
+  height: 154px;
   transform: translateX(-50%);
   display: block;
   margin: 0;
@@ -1385,10 +1396,7 @@ body::before {
   font-size: 9px;
 }
 .basket-percent {
-  position: absolute;
-  right: 4px;
-  bottom: 2px;
-  z-index: 8;
+  display: none;
 }
 .basket {
   position: absolute;
@@ -1406,7 +1414,7 @@ body::before {
   position: absolute;
   left: 50%;
   top: 4px;
-  width: min(100%, 350px);
+  width: min(100%, 286px);
   height: 146px;
   transform: translateX(-50%);
   object-fit: contain;
@@ -1784,16 +1792,16 @@ body::before {
     </div>
     <div class="denom-row">
       <span class="denom-label">기본 배팅 (88 라인 x 10)</span>
-      <span class="denom-val">880 <span class="denom-ways">/ 243 WAYS</span></span>
+      <span class="denom-val" id="denomBetVal">880 <span class="denom-ways">/ 243 WAYS</span></span>
     </div>
     <div class="bet-row">
       <div class="mult-chips">
-        <button class="chip selected" data-mult="1">x1</button>
-        <button class="chip" data-mult="2">x2</button>
-        <button class="chip" data-mult="3">x3</button>
-        <button class="chip" data-mult="5">x5</button>
-        <button class="chip" data-mult="10">x10</button>
-        <button class="chip" data-mult="max">MAX</button>
+        <button class="chip selected" data-bet-index="0">88</button>
+        <button class="chip" data-bet-index="1">188</button>
+        <button class="chip" data-bet-index="2">288</button>
+        <button class="chip" data-bet-index="3">588</button>
+        <button class="chip" data-bet-index="4">1000</button>
+        <button class="chip" data-bet-index="5">MAX</button>
       </div>
       <button class="spin-btn" id="spinBtn">SPIN<small>스핀</small></button>
     </div>
@@ -1848,16 +1856,24 @@ body::before {
 
 <script>
 // ============ 상태 ============
-const BASE_BET = 880; // 기본가 88크레딧 × ₩10
+const BET_LEVELS = [
+  { label: '88', amount: 880 },
+  { label: '188', amount: 1880 },
+  { label: '288', amount: 2880 },
+  { label: '588', amount: 5880 },
+  { label: '1000', amount: 10000 },
+  { label: 'MAX', amount: 10000 },
+];
 const S = {
   balance: 100000,
-  mult: 1,
+  betIndex: 0,
   spinning: false,
   auto: false,
   basket: 0,       // 잭팟 게이지 (0~100)
   jp: { grand: 500000, major: 120000, minor: 30000, mini: 8000 },
 };
-const totalBet = () => BASE_BET * S.mult;
+const currentBetLevel = () => BET_LEVELS[S.betIndex] || BET_LEVELS[0];
+const totalBet = () => currentBetLevel().amount;
 
 // ============ 심볼 ============
 const SYMIMG = {
@@ -2102,11 +2118,11 @@ async function longWinCelebration(amount, bet, el){
 }
 async function mediumWinCelebration(amount, bet, el, cells=null, matrix=null){
   const m=amount/bet;
-  const dur=amount>=3000 || m>=3 ? 5200 : 3400;
-  showBanner(amount>=3000 || m>=3 ? 'NICE WIN!' : 'WIN!', 1200);
+  const dur=amount>=6500 || m>=6 ? 6200 : 4200;
+  showBanner(amount>=6500 || m>=6 ? 'NICE WIN!' : 'WIN!', 1200);
   winFanfare(false);
   eventWinEffect(1, dur);
-  if(cells && matrix) burstCoinsFromCells(cells, matrix, amount>=3000 ? 34 : 22, amount>=3000 ? 1.12 : .9);
+  if(cells && matrix) burstCoinsFromCells(cells, matrix, amount>=6500 ? 34 : 20, amount>=6500 ? 1.12 : .82);
   const stop=startRollup(1);
   el.textContent='0';
   el.classList.add('win-anim');
@@ -2148,6 +2164,8 @@ board.forEach((col,r)=>col.forEach((s,row)=>renderCell(r,row,s)));
 function updateHud(){
   document.getElementById('balance').textContent=fmt(S.balance);
   document.getElementById('betDisplay').textContent=fmt(totalBet());
+  const denom=document.getElementById('denomBetVal');
+  if(denom) denom.innerHTML=`${fmt(totalBet())} <span class="denom-ways">/ 243 WAYS</span>`;
 }
 function updateJp(){
   for(const k of ['grand','major','minor','mini'])
@@ -2218,7 +2236,7 @@ document.querySelectorAll('.chip').forEach(ch=>{
     if(S.spinning)return;
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
     ch.classList.add('selected');
-    S.mult = ch.dataset.mult==='max' ? 10 : +ch.dataset.mult;
+    S.betIndex = +ch.dataset.betIndex || 0;
     tone(880,.08,'square',.1);
     updateHud();
   };
@@ -2434,7 +2452,7 @@ async function evaluateBase(){
   totalWin+=win;
   if(cells.size) {
     await flashWinningCells(cells, grid);
-    if(win>=1200) burstCoinsFromCells(cells, grid, win>=2500 ? 36 : 20, win>=2500 ? 1.08 : .88);
+    if(win>=3500) burstCoinsFromCells(cells, grid, win>=6500 ? 34 : 18, win>=6500 ? 1.08 : .78);
   }
 
   // 금화 → 게이지 + 잭팟 확률 판정
@@ -2443,7 +2461,7 @@ async function evaluateBase(){
   if(pots>0){
     await flyCoinsToBasket(potCells, grid, 10);
     const beforeBasket=S.basket;
-    S.basket=Math.min(100,S.basket+pots*2.4);
+    S.basket=Math.min(100,S.basket+pots*.7);
     coinSfx(pots); updateBasket(beforeBasket,pots);
   }
   // 잭팟은 게이지가 찰수록 확률이 올라가지만, 다 차도 즉시 보장되지는 않습니다.
@@ -2471,9 +2489,9 @@ async function evaluateBase(){
     const wd=document.getElementById('winDisplay');
     wd.textContent=fmt(totalWin); wd.classList.add('win-anim');
     const m=totalWin/bet;
-    if(m>=8){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
-    else if(m>=1.5 || totalWin>=1500){ await mediumWinCelebration(totalWin, bet, wd, cells, grid); }
-    else if(m>=.7 || totalWin>=700){ winFanfare(false); eventWinEffect(1,1400); coinFountain(26,.82); }
+    if(m>=10){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
+    else if(m>=4 || totalWin>=4500){ await mediumWinCelebration(totalWin, bet, wd, cells, grid); }
+    else if(m>=2.5 || totalWin>=2600){ winFanfare(false); burstCoinsFromCells(cells, grid, 10, .58); }
     else coinSfx(2);
     updateHud();
   }
@@ -2541,8 +2559,6 @@ async function freeSpins(cfg, spins){
   // 보드 생성 — 5열 고정, 행이 많을수록 셀이 작아지도록 너비 자동 조절
   boardEl.style.gridTemplateColumns=`repeat(${cfg.cols},1fr)`;
   boardEl.innerHTML='';
-  const fsCoinLayer=document.createElement('div');
-  fsCoinLayer.className='fs-coin-layer';
   // 사용 가능한 세로 공간(오버레이 - HUD - 버튼 여유)에 맞춰 셀 크기 계산
   const availH = Math.min(window.innerHeight*0.62, 560);
   const cellByH = availH / cfg.rows;          // 행 기준 최대 셀 크기
@@ -2563,7 +2579,6 @@ async function freeSpins(cfg, spins){
   for(let row=0;row<cfg.rows;row++)
     for(let r=0;r<cfg.cols;r++)
       boardEl.appendChild(fsCells[r][row]);
-  boardEl.appendChild(fsCoinLayer);
 
   let remaining=spins, total=0;
   spinsEl.textContent=remaining; totalEl.textContent='0';
@@ -2622,7 +2637,7 @@ async function freeSpins(cfg, spins){
     if(pots>0){
       await flyCoinsToBasket(potCells, fsCells, 12);
       const beforeBasket=S.basket;
-      S.basket=Math.min(100,S.basket+pots*1.1);
+      S.basket=Math.min(100,S.basket+pots*.35);
       coinSfx(pots);
       updateBasket(beforeBasket,pots);
     }
@@ -2631,8 +2646,8 @@ async function freeSpins(cfg, spins){
     if(win>0){
       await flashWinningCells(cells, fsCells);
       const m = win / bet;                        // 베팅 대비 배수
-      const intensity = m>=30 ? 3 : m>=12 ? 2 : (m>=1.5 || win>=1500) ? 1 : 0;
-      const dur = intensity>=3 ? 45000 : intensity>=2 ? 30000 : intensity>=1 ? 6500 : 1300;
+      const intensity = m>=30 ? 3 : m>=12 ? 2 : (m>=5 || win>=5000) ? 1 : 0;
+      const dur = intensity>=3 ? 45000 : intensity>=2 ? 30000 : intensity>=1 ? 5600 : 1300;
       const labels = [null,'BIG WIN','MEGA WIN','SUPER MEGA WIN'];
       const tierCls = [null,'big','mega','super'][intensity];
 
@@ -2654,12 +2669,12 @@ async function freeSpins(cfg, spins){
       if(wpAmt) anims.push(countUp(wpAmt, 0, win, dur));
       if(intensity>=1){
         eventWinEffect(intensity,dur);
-        burstCoinsFromCells(cells, fsCells, intensity>=2?58:34, intensity>=2?1.15:.95);
-        coinFountain(intensity>=2?70:42, intensity>=2?1.28:1.05, fsCoinLayer);
-        let cr=0; const crIv=setInterval(()=>{ coinFountain(intensity>=2?38:22, intensity>=2?1.22:1.02, fsCoinLayer); if(++cr>dur/470)clearInterval(crIv); },470);
-      } else if(win>=600){
-        burstCoinsFromCells(cells, fsCells, 18, .82);
-        coinSfx(6);
+        burstCoinsFromCells(cells, fsCells, intensity>=2?58:30, intensity>=2?1.15:.88);
+        coinFountain(intensity>=2?70:38, intensity>=2?1.28:1.02);
+        let cr=0; const crIv=setInterval(()=>{ coinFountain(intensity>=2?38:18, intensity>=2?1.22:.94); if(++cr>dur/520)clearInterval(crIv); },520);
+      } else if(m>=2.5 || win>=2600){
+        burstCoinsFromCells(cells, fsCells, 12, .62);
+        coinSfx(4);
       }
       await Promise.all(anims);
       stop();
