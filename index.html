@@ -490,16 +490,16 @@ body::before {
 
 .cell.win-glow,
 .fs-cell.win-glow {
-  animation: winGlow .5s infinite alternate;
+  animation: winGlow .38s infinite alternate;
   z-index: 2;
 }
 @keyframes winGlow {
-  from { filter: brightness(1.05) drop-shadow(0 0 2px rgba(255, 220, 100, .5)); }
-  to { filter: brightness(1.42) drop-shadow(0 0 14px rgba(255, 220, 100, 1)); }
+  from { filter: brightness(1.12) saturate(1.12) drop-shadow(0 0 3px rgba(255, 220, 100, .7)); }
+  to { filter: brightness(1.72) saturate(1.32) drop-shadow(0 0 18px rgba(255, 220, 100, 1)) drop-shadow(0 0 30px rgba(255, 78, 35, .65)); }
 }
 .cell.win-flash,
 .fs-cell.win-flash {
-  animation: winFlash .95s ease-in-out 1;
+  animation: winFlash 1.18s ease-in-out 1;
 }
 
 .cell.win-flash::after,
@@ -511,7 +511,7 @@ body::before {
   background:
     radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .95), rgba(255, 236, 135, .7) 18%, rgba(255, 165, 44, .18) 46%, transparent 70%);
   mix-blend-mode: screen;
-  animation: winSweep .95s ease-in-out 1;
+  animation: winSweep 1.18s ease-in-out 1;
 }
 
 @keyframes winFlash {
@@ -520,7 +520,7 @@ body::before {
     box-shadow: none;
   }
   20%, 58% {
-    transform: scale(1.08);
+    transform: scale(1.13);
     box-shadow:
       0 0 0 2px rgba(255, 249, 196, .95),
       0 0 18px rgba(255, 224, 91, .95),
@@ -536,7 +536,7 @@ body::before {
 
 @keyframes winSweep {
   0%, 100% { opacity: 0; transform: scale(.75); }
-  18%, 56% { opacity: 1; transform: scale(1.05); }
+  18%, 56% { opacity: 1; transform: scale(1.18); }
   36%, 76% { opacity: .35; transform: scale(.92); }
 }
 
@@ -2100,6 +2100,21 @@ async function longWinCelebration(amount, bet, el){
   hideBanner();
   coinFountain(level>=3?70:42, level>=3?1.22:1.05);
 }
+async function mediumWinCelebration(amount, bet, el, cells=null, matrix=null){
+  const m=amount/bet;
+  const dur=amount>=3000 || m>=3 ? 5200 : 3400;
+  showBanner(amount>=3000 || m>=3 ? 'NICE WIN!' : 'WIN!', 1200);
+  winFanfare(false);
+  eventWinEffect(1, dur);
+  if(cells && matrix) burstCoinsFromCells(cells, matrix, amount>=3000 ? 34 : 22, amount>=3000 ? 1.12 : .9);
+  const stop=startRollup(1);
+  el.textContent='0';
+  el.classList.add('win-anim');
+  await countUp(el, 0, amount, dur);
+  stop();
+  rollupEnd(1);
+  hideBanner();
+}
 
 // ============ 베이스 보드 DOM ============
 const reelsEl=document.getElementById('reels');
@@ -2346,25 +2361,63 @@ function flyCoinsToBasket(cells, matrix, maxCoins=10){
   const target=basket.getBoundingClientRect();
   const tx=target.left+target.width*.5;
   const ty=target.top+target.height*.45;
-  cells.slice(0,maxCoins).forEach((pos,i)=>{
+  const burst=[];
+  cells.slice(0,maxCoins).forEach(pos=>{
+    const repeats=3;
+    for(let j=0;j<repeats;j++) burst.push(pos);
+  });
+  burst.slice(0,maxCoins*3).forEach((pos,i)=>{
     const [r,row]=pos.split('-').map(Number);
     const el=matrix[r] && matrix[r][row];
     if(!el) return;
     const src=el.getBoundingClientRect();
-    const sx=src.left+src.width*.5;
-    const sy=src.top+src.height*.5;
+    const sx=src.left+src.width*(.42+Math.random()*.16);
+    const sy=src.top+src.height*(.42+Math.random()*.16);
     const c=document.createElement('span');
     c.className='basket-fly-coin';
     c.style.setProperty('--sx', sx+'px');
     c.style.setProperty('--sy', sy+'px');
     c.style.setProperty('--dx', (tx-sx)+'px');
     c.style.setProperty('--dy', (ty-sy)+'px');
-    c.style.setProperty('--size', (22+Math.random()*10)+'px');
-    c.style.setProperty('--delay', (i*70)+'ms');
+    c.style.setProperty('--size', (24+Math.random()*16)+'px');
+    c.style.setProperty('--delay', (i*38)+'ms');
     document.body.appendChild(c);
-    setTimeout(()=>c.remove(),1250+i*70);
+    setTimeout(()=>c.remove(),1450+i*38);
   });
-  return wait(Math.min(900, 360+cells.length*70));
+  coinCascadeSfx(620,1);
+  return wait(Math.min(1250, 500+burst.length*38));
+}
+function burstCoinsFromCells(cells, matrix, amount=18, power=1){
+  const cont=document.getElementById('coinRain');
+  if(!cont || !cells || !cells.size) return;
+  const arr=[...cells];
+  const count=Math.min(70, Math.max(amount, arr.length*5));
+  for(let i=0;i<count;i++){
+    const pos=arr[i%arr.length];
+    const [r,row]=pos.split('-').map(Number);
+    const el=matrix[r] && matrix[r][row];
+    if(!el) continue;
+    const box=el.getBoundingClientRect();
+    const c=document.createElement('div');
+    c.className='money-pop' + (Math.random()<.22 ? ' edge' : '');
+    const sx=box.left+box.width*(.35+Math.random()*.3);
+    const sy=window.innerHeight-(box.top+box.height*(.45+Math.random()*.2));
+    const side=Math.random()<.5?-1:1;
+    c.style.setProperty('--x', sx+'px');
+    c.style.setProperty('--bottom', sy+'px');
+    c.style.setProperty('--dx', ((35+Math.random()*150)*side*power)+'px');
+    c.style.setProperty('--apex', (-(130+Math.random()*240)*power)+'px');
+    c.style.setProperty('--land', (-(20+Math.random()*120)*power)+'px');
+    const size=22+Math.random()*28*power;
+    c.style.setProperty('--w', size+'px');
+    c.style.setProperty('--h', size+'px');
+    c.style.setProperty('--rz', ((side>0?1:-1)*(420+Math.random()*900))+'deg');
+    c.style.setProperty('--flip', (720+Math.random()*1260)+'deg');
+    c.style.setProperty('--dur', (1.1+Math.random()*.8)+'s');
+    c.style.animationDelay=(Math.random()*.28)+'s';
+    cont.appendChild(c);
+    setTimeout(()=>c.remove(),2900);
+  }
 }
 function maxDrumRun(bd,cols){
   let best=0,cur=0;
@@ -2379,7 +2432,10 @@ async function evaluateBase(){
 
   const {win,cells}=evalWays(board,5,unit);
   totalWin+=win;
-  if(cells.size) await flashWinningCells(cells, grid);
+  if(cells.size) {
+    await flashWinningCells(cells, grid);
+    if(win>=1200) burstCoinsFromCells(cells, grid, win>=2500 ? 36 : 20, win>=2500 ? 1.08 : .88);
+  }
 
   // 금화 → 게이지 + 잭팟 확률 판정
   const potCells=symbolCells(board,'p');
@@ -2415,9 +2471,9 @@ async function evaluateBase(){
     const wd=document.getElementById('winDisplay');
     wd.textContent=fmt(totalWin); wd.classList.add('win-anim');
     const m=totalWin/bet;
-    if(m>=20){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
-    else if(m>=8){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
-    else if(m>=1){ winFanfare(false); }
+    if(m>=8){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
+    else if(m>=1.5 || totalWin>=1500){ await mediumWinCelebration(totalWin, bet, wd, cells, grid); }
+    else if(m>=.7 || totalWin>=700){ winFanfare(false); eventWinEffect(1,1400); coinFountain(26,.82); }
     else coinSfx(2);
     updateHud();
   }
@@ -2575,8 +2631,8 @@ async function freeSpins(cfg, spins){
     if(win>0){
       await flashWinningCells(cells, fsCells);
       const m = win / bet;                        // 베팅 대비 배수
-      const intensity = m>=30 ? 3 : m>=12 ? 2 : m>=5 ? 1 : 0;
-      const dur = intensity>=3 ? 45000 : intensity>=2 ? 30000 : intensity>=1 ? 8000 : 1000;
+      const intensity = m>=30 ? 3 : m>=12 ? 2 : (m>=1.5 || win>=1500) ? 1 : 0;
+      const dur = intensity>=3 ? 45000 : intensity>=2 ? 30000 : intensity>=1 ? 6500 : 1300;
       const labels = [null,'BIG WIN','MEGA WIN','SUPER MEGA WIN'];
       const tierCls = [null,'big','mega','super'][intensity];
 
@@ -2598,8 +2654,12 @@ async function freeSpins(cfg, spins){
       if(wpAmt) anims.push(countUp(wpAmt, 0, win, dur));
       if(intensity>=1){
         eventWinEffect(intensity,dur);
-        coinFountain(intensity>=2?54:26, intensity>=2?1.15:.96, fsCoinLayer);
-        let cr=0; const crIv=setInterval(()=>{ coinFountain(intensity>=2?30:14, intensity>=2?1.18:.92, fsCoinLayer); if(++cr>dur/520)clearInterval(crIv); },520);
+        burstCoinsFromCells(cells, fsCells, intensity>=2?58:34, intensity>=2?1.15:.95);
+        coinFountain(intensity>=2?70:42, intensity>=2?1.28:1.05, fsCoinLayer);
+        let cr=0; const crIv=setInterval(()=>{ coinFountain(intensity>=2?38:22, intensity>=2?1.22:1.02, fsCoinLayer); if(++cr>dur/470)clearInterval(crIv); },470);
+      } else if(win>=600){
+        burstCoinsFromCells(cells, fsCells, 18, .82);
+        coinSfx(6);
       }
       await Promise.all(anims);
       stop();
