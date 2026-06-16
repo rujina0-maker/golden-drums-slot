@@ -1422,6 +1422,62 @@ body::before {
   100% { transform: translate(-50%, 78px) scale(.55) rotate(360deg); opacity: 0; }
 }
 
+
+
+/* Basket stages and big win effects */
+.basket-lid-slam {
+  position: absolute;
+  left: 50%;
+  top: -12px;
+  z-index: 10;
+  width: min(88%, 330px);
+  height: 82px;
+  transform: translateX(-50%) translateY(-74px) rotate(-13deg);
+  transform-origin: 50% 90%;
+  border-radius: 50% 50% 28px 28px;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0 5%, #0b4eb7 7% 28%, #ffe06f 30% 35%, #bd1711 37% 63%, #ffe06f 65% 70%, #0b4eb7 72% 93%, transparent 95%),
+    linear-gradient(180deg, #fff3a3, #d49322 45%, #6a2704);
+  border: 3px solid #ffe58a;
+  box-shadow: inset 0 4px 9px rgba(255,255,255,.32), 0 0 22px rgba(255,218,82,.74);
+}
+.basket.closing .basket-lid-slam,
+.basket.closed .basket-lid-slam {
+  opacity: 1;
+  transform: translateX(-50%) translateY(38px) rotate(0deg);
+  transition: transform .72s cubic-bezier(.2, 1.2, .2, 1), opacity .12s;
+}
+.event-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 60%, rgba(255,242,153,.9), transparent 30%),
+    radial-gradient(circle at 50% 100%, rgba(255,95,30,.55), transparent 44%);
+}
+.event-flash.show { animation: eventFlash .9s ease-out forwards; }
+@keyframes eventFlash {
+  0% { opacity: 0; }
+  12% { opacity: .95; }
+  100% { opacity: 0; }
+}
+.coin.fountain {
+  top: auto;
+  bottom: -42px;
+  animation: fountainUp var(--dur, 1.2s) cubic-bezier(.16,.78,.22,1) forwards;
+  filter: drop-shadow(0 0 8px rgba(255, 207, 62, .95));
+}
+@keyframes fountainUp {
+  0% { transform: translate(0, 0) scale(.65) rotate(0deg); opacity: 0; }
+  12% { opacity: 1; }
+  72% { opacity: 1; }
+  100% { transform: translate(var(--dx, 0px), var(--dy, -520px)) scale(1.15) rotate(820deg); opacity: 0; }
+}
+
 </style>
 </head>
 <body>
@@ -1571,7 +1627,7 @@ body::before {
       <div class="basket" id="basket" aria-label="Jackpot pot">
         <div class="basket-aura"></div>
         <div class="basket-fill" id="basketFill"></div>
-        <img class="basket-art" src="assets/jackpot-basket.png" alt="">
+        <img class="basket-art" id="basketArt" src="assets/jackpot-basket-empty.png" alt=""><div class="basket-lid-slam"></div>
         <div class="basket-coins" id="basketCoins"></div>
       </div>
       <span class="basket-percent" id="basketPct">0%</span>
@@ -1623,8 +1679,8 @@ body::before {
   <div class="ov-title" style="font-size:clamp(20px,6vw,32px);">FREE SPINS</div>
   <div class="fs-wrap">
     <div class="fs-hud">
-      <div class="fs-stat" id="fsSpinsStat"><div class="lbl">?⑥? ?ㅽ?</div><div class="val" id="fsSpins">0</div></div>
-      <div class="fs-stat"><div class="lbl">?꾩쟻 ?뱀꺼</div><div class="val green" id="fsTotal">0</div></div>
+      <div class="fs-stat" id="fsSpinsStat"><div class="lbl">남은 스핀</div><div class="val" id="fsSpins">0</div></div>
+      <div class="fs-stat"><div class="lbl">누적 당첨</div><div class="val green" id="fsTotal">0</div></div>
     </div>
     <div class="fs-board" id="fsBoard"></div>
   </div>
@@ -1632,6 +1688,7 @@ body::before {
   <button class="ov-btn" id="fsClose">당첨금 받기</button>
 </div>
 <div class="screen-flash" id="screenFlash"></div>
+<div class="event-flash" id="eventFlash"></div>
 
 <!-- 잭팟 카드 매칭 미니게임 -->
 <div class="overlay" id="jpPickOverlay">
@@ -1867,13 +1924,20 @@ function animateBasketGain(count){
     setTimeout(()=>c.remove(),950+i*55);
   }
 }
+function basketStageSrc(pct){
+  if(pct>=82) return 'assets/jackpot-basket-full.png';
+  if(pct>=52) return 'assets/jackpot-basket-mid.png';
+  if(pct>=18) return 'assets/jackpot-basket-low.png';
+  return 'assets/jackpot-basket-empty.png';
+}
 function updateBasket(prevPct=null, gained=0){
   const pct=Math.max(0,Math.min(100,S.basket));
   const prev=prevPct==null ? pct : Math.max(0,Math.min(100,prevPct));
   const fill=document.getElementById('basketFill');
   const basket=document.getElementById('basket');
+  const art=document.getElementById('basketArt');
   fill.style.setProperty('--fill',(pct/100).toFixed(3));
-  fill.style.height=pct+'%';
+  if(art) art.src=basketStageSrc(pct);
   document.getElementById('basketPct').textContent=Math.round(pct)+'%';
   buildBasketCoins(pct);
   basket.classList.toggle('hot',pct>=70);
@@ -1881,13 +1945,15 @@ function updateBasket(prevPct=null, gained=0){
 }
 function basketCloseIntro(){
   const basket=document.getElementById('basket');
+  const art=document.getElementById('basketArt');
+  if(art) art.src='assets/jackpot-basket-full.png';
   basket.classList.add('bursting','closing');
   basket.classList.remove('hot');
-  dungDungDung();
+  jackpotDrumroll(1100);
   return wait(760).then(()=>{
     basket.classList.add('closed');
     basket.classList.remove('closing');
-    return wait(260);
+    return wait(360);
   });
 }
 function toast(msg){
@@ -2243,7 +2309,8 @@ async function freeSpins(cfg, spins){
       const before=total, after=total+win;
       const anims=[ countUp(totalEl, before, after, dur) ];
       if(wpAmt) anims.push(countUp(wpAmt, 0, win, dur));
-      if(intensity>=1){ // 올라가는 동안 코인 비
+      if(intensity>=1){
+        eventWinEffect(intensity,dur);
         let cr=0; const crIv=setInterval(()=>{ rainCoins(intensity>=2?6:3); if(++cr>dur/220)clearInterval(crIv); },220);
       }
       await Promise.all(anims);
@@ -2300,7 +2367,7 @@ function jackpotBurst(){
     let cur=0; const step=amount/40;
     const iv=setInterval(()=>{
       cur=Math.min(amount,cur+step);
-      amtEl.textContent='??'+fmt(cur);
+      amtEl.textContent='₩ '+fmt(cur);
       if(cur>=amount){clearInterval(iv); winFanfare(true);}
     },50);
     ov.classList.add('show');
@@ -2444,6 +2511,42 @@ function jackpotCardGame(){
 }
 
 // ============ 코인 비 ============
+
+function jackpotDrumroll(ms=900){
+  const beats=Math.max(4,Math.floor(ms/120));
+  for(let i=0;i<beats;i++){
+    const f=i%2?130:92;
+    tone(f,.12,'sawtooth',.22,i*.105);
+    tone(f*1.5,.08,'square',.08,i*.105+.03);
+  }
+}
+function coinFountain(n=34, power=1){
+  const cont=document.getElementById('coinRain');
+  for(let i=0;i<n;i++){
+    const c=document.createElement('div');
+    c.className='coin fountain';
+    c.textContent=Math.random()<0.5?'\uD83E\DE99':'\uD83D\DCB0';
+    c.style.left=(8+Math.random()*84)+'vw';
+    c.style.setProperty('--dx', ((Math.random()-.5)*260*power)+'px');
+    c.style.setProperty('--dy', (-(330+Math.random()*310)*power)+'px');
+    c.style.setProperty('--dur', (.9+Math.random()*.75)+'s');
+    c.style.animationDelay=(Math.random()*.36)+'s';
+    c.style.fontSize=(22+Math.random()*20)+'px';
+    cont.appendChild(c);
+    setTimeout(()=>c.remove(),1900);
+  }
+}
+function eventWinEffect(level=1, duration=1000){
+  const flash=document.getElementById('eventFlash');
+  if(flash){
+    flash.classList.remove('show');
+    void flash.offsetWidth;
+    flash.classList.add('show');
+  }
+  jackpotDrumroll(Math.min(1500, duration));
+  coinFountain(level>=3?82:level>=2?58:36, level>=3?1.35:level>=2?1.15:1);
+}
+
 function rainCoins(n){
   const cont=document.getElementById('coinRain');
   for(let i=0;i<n;i++){
