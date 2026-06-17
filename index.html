@@ -1877,6 +1877,43 @@ const S = {
   basket: 0,       // 잭팟 게이지 (0~100)
   jp: { grand: 500000, major: 120000, minor: 30000, mini: 8000 },
 };
+const SAVE_KEY='golden-drums-slot-state-v2';
+function clampNum(value, fallback, min=-Infinity, max=Infinity){
+  const n=Number(value);
+  if(!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, n));
+}
+function loadState(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const saved=JSON.parse(raw);
+    S.balance=Math.floor(clampNum(saved.balance, S.balance, 0, 999999999));
+    S.betIndex=Math.floor(clampNum(saved.betIndex, S.betIndex, 0, BET_LEVELS.length-1));
+    S.basket=clampNum(saved.basket, S.basket, 0, 100);
+    if(saved.jp && typeof saved.jp==='object'){
+      for(const k of ['grand','major','minor','mini']){
+        S.jp[k]=Math.floor(clampNum(saved.jp[k], S.jp[k], 0, 999999999));
+      }
+    }
+  }catch(e){}
+}
+function saveState(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      balance: Math.floor(clampNum(S.balance, 0, 0, 999999999)),
+      betIndex: Math.floor(clampNum(S.betIndex, 0, 0, BET_LEVELS.length-1)),
+      basket: clampNum(S.basket, 0, 0, 100),
+      jp: {
+        grand: Math.floor(clampNum(S.jp.grand, 500000, 0, 999999999)),
+        major: Math.floor(clampNum(S.jp.major, 120000, 0, 999999999)),
+        minor: Math.floor(clampNum(S.jp.minor, 30000, 0, 999999999)),
+        mini: Math.floor(clampNum(S.jp.mini, 8000, 0, 999999999)),
+      },
+    }));
+  }catch(e){}
+}
+loadState();
 const currentBetLevel = () => BET_LEVELS[S.betIndex] || BET_LEVELS[0];
 const totalBet = () => currentBetLevel().amount;
 
@@ -2014,9 +2051,12 @@ function coinSfx(n=1){ for(let i=0;i<n;i++) tone(1400+Math.random()*800,.12,'tri
 function coinCascadeSfx(ms=1200, intensity=1){
   const steps=Math.min(90, Math.max(12, Math.floor(ms/42)));
   for(let i=0;i<steps;i++){
-    const t=i*.035;
-    tone(1500+Math.random()*1700,.055,'triangle',.035*intensity,t);
-    if(i%3===0) tone(760+Math.random()*360,.05,'square',.018*intensity,t+.012);
+    const p=steps<=1?1:i/(steps-1);
+    const gap=.07-(Math.min(1,p)*.037);
+    const t=i*gap;
+    const vol=(.014+p*.026)*intensity;
+    tone(1280+p*900+Math.random()*1500,.055,'triangle',vol,t);
+    if(i%3===0) tone(660+p*260+Math.random()*330,.05,'square',vol*.48,t+.012);
   }
 }
 function winFanfare(big){
@@ -2106,18 +2146,10 @@ async function longWinCelebration(amount, bet, el){
   const dur=mult>=50?60000:mult>=20?36000:18000;
   showBanner(level>=3?'MEGA WIN!':'BIG WIN!', 1800);
   winFanfare(true);
-  eventWinEffect(level, dur);
-  let pulse=0;
-  const interval=setInterval(()=>{
-    coinFountain(level>=3?74:48, level>=3?1.42:1.18);
-    coinCascadeSfx(380, level>=3?1.1:.85);
-    if(++pulse%2===0) jackpotDrumroll(620);
-  }, level>=3?430:560);
+  const stopEvent=eventWinEffect(level, dur);
   el.classList.add('win-anim');
-  await countUpSkippable(el, 0, amount, dur, p=>{
-    if(p>.985) clearInterval(interval);
-  });
-  clearInterval(interval);
+  await countUpSkippable(el, 0, amount, dur);
+  if(stopEvent) stopEvent();
   hideBanner();
   coinFountain(level>=3?70:42, level>=3?1.22:1.05);
 }
@@ -2126,12 +2158,13 @@ async function mediumWinCelebration(amount, bet, el, cells=null, matrix=null){
   const dur=amount>=6500 || m>=6 ? 6200 : 4200;
   showBanner(amount>=6500 || m>=6 ? 'NICE WIN!' : 'WIN!', 1200);
   winFanfare(false);
-  eventWinEffect(1, dur);
+  const stopEvent=eventWinEffect(1, dur);
   if(cells && matrix) burstCoinsFromCells(cells, matrix, amount>=6500 ? 34 : 20, amount>=6500 ? 1.12 : .82);
   const stop=startRollup(1);
   el.textContent='0';
   el.classList.add('win-anim');
   await countUp(el, 0, amount, dur);
+  if(stopEvent) stopEvent();
   stop();
   rollupEnd(1);
   hideBanner();
@@ -2172,10 +2205,12 @@ function updateHud(){
   document.getElementById('betDisplay').textContent=fmt(totalBet());
   const denom=document.getElementById('denomBetVal');
   if(denom) denom.innerHTML=`${fmt(totalBet())} <span class="denom-ways">/ 243 WAYS</span>`;
+  saveState();
 }
 function updateJp(){
   for(const k of ['grand','major','minor','mini'])
     document.getElementById('jp'+k[0].toUpperCase()+k.slice(1)+'Val').textContent=fmt(S.jp[k]);
+  saveState();
 }
 function buildBasketCoins(pct){
   const coins=document.getElementById('basketCoins');
@@ -2214,6 +2249,7 @@ function updateBasket(prevPct=null, gained=0){
   buildBasketCoins(pct);
   basket.classList.toggle('hot',pct>=70);
   if(pct>prev) animateBasketGain(gained || Math.max(1,Math.ceil((pct-prev)/5)));
+  saveState();
 }
 function basketCloseIntro(){
   const basket=document.getElementById('basket');
@@ -2235,6 +2271,7 @@ function toast(msg){
   clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),2200);
 }
 updateHud(); updateJp(); updateBasket();
+document.querySelectorAll('.chip').forEach((ch,i)=>ch.classList.toggle('selected',i===S.betIndex));
 
 // ============ 베팅 배수 ============
 document.querySelectorAll('.chip').forEach(ch=>{
@@ -2682,18 +2719,16 @@ async function freeSpins(cfg, spins){
       const before=total, after=total+win;
       const anims=[ countUpSkippable(totalEl, before, after, dur) ];
       if(wpAmt) anims.push(countUpSkippable(wpAmt, 0, win, dur));
-      let crIv=null;
+      let stopEvent=null;
       if(intensity>=1){
-        eventWinEffect(intensity,dur);
+        stopEvent=eventWinEffect(intensity,dur);
         burstCoinsFromCells(cells, fsCells, intensity>=2?58:30, intensity>=2?1.15:.88);
-        coinFountain(intensity>=2?70:38, intensity>=2?1.28:1.02);
-        let cr=0; crIv=setInterval(()=>{ coinFountain(intensity>=2?38:18, intensity>=2?1.22:.94); if(++cr>dur/520)clearInterval(crIv); },520);
       } else if(m>=2.5 || win>=2600){
         burstCoinsFromCells(cells, fsCells, 12, .62);
         coinSfx(4);
       }
       await Promise.all(anims);
-      if(crIv) clearInterval(crIv);
+      if(stopEvent) stopEvent();
       stop();
       total=after;
       totalEl.classList.remove('rolling');
@@ -2960,6 +2995,54 @@ function coinFountain(n=34, power=1, target=null){
     }
   }
 }
+function startCoinRamp(level=1, duration=3600, target=null){
+  const heavy=level>=3;
+  const mid=level>=2;
+  let stopped=false, loopTimer=null;
+  const timers=[];
+  const add=(delay,fn)=>{
+    const id=setTimeout(()=>{
+      if(!stopped) fn();
+    },delay);
+    timers.push(id);
+  };
+  const burst=(count,power,ms=160,intensity=.55)=>{
+    coinFountain(count,power,target);
+    coinCascadeSfx(ms,intensity);
+  };
+
+  add(0,()=>{ drumHit(0,.28); burst(2,.62,90,.22); });
+  add(360,()=>{ drumHit(0,.34); burst(3,.7,110,.28); });
+  add(780,()=>{ drumHit(0,.42); burst(5,.8,150,.34); });
+  add(1220,()=>{ drumHit(0,.48); burst(mid?12:8,.92,220,.5); });
+  add(1660,()=>{ jackpotDrumroll(360); burst(mid?22:14,1.02,300,.65); });
+  add(2140,()=>{ jackpotDrumroll(540); burst(heavy?54:mid?36:22,heavy?1.32:mid?1.16:1.02,500,heavy?1:.78); });
+  if(mid) add(2760,()=>{ jackpotDrumroll(680); burst(heavy?82:50,heavy?1.48:1.24,760,heavy?1.12:.9); });
+  if(heavy) add(2420,()=>dungDungDung());
+
+  const loopStart=heavy?3300:mid?3100:2600;
+  const maxRun=Math.max(loopStart+900, duration-350);
+  const loop=()=>{
+    if(stopped) return;
+    const elapsed=performance.now()-startedAt;
+    if(elapsed>maxRun) return;
+    const p=Math.min(1,(elapsed-loopStart)/2600);
+    const count=heavy ? 28+Math.floor(p*46) : mid ? 18+Math.floor(p*26) : 9+Math.floor(p*13);
+    const power=heavy ? 1.08+p*.42 : mid ? .98+p*.26 : .82+p*.2;
+    burst(count,power,240+p*240,.55+p*.42);
+    if(p>.45) jackpotDrumroll(380+p*220);
+    else drumHit(0,.38+p*.18);
+    loopTimer=setTimeout(loop, Math.max(260, (heavy?620:760)-p*(heavy?260:300)));
+  };
+  const startedAt=performance.now();
+  add(loopStart,loop);
+
+  return ()=>{
+    stopped=true;
+    timers.forEach(clearTimeout);
+    clearTimeout(loopTimer);
+  };
+}
 function eventWinEffect(level=1, duration=1000){
   const flash=document.getElementById('eventFlash');
   if(flash){
@@ -2970,12 +3053,8 @@ function eventWinEffect(level=1, duration=1000){
   const heavy=level>=3;
   casinoRise(heavy?1.8:1.05, heavy?.16:.1);
   noiseBurst(heavy?.72:.42, heavy?.18:.1, .08, 3200);
-  coinCascadeSfx(Math.min(duration, heavy?2600:1700), heavy?1.35:1);
-  jackpotDrumroll(Math.min(1700, duration));
-  if(heavy) dungDungDung();
-  coinFountain(heavy?190:level>=2?132:72, heavy?1.7:level>=2?1.42:1.15);
-  setTimeout(()=>coinFountain(heavy?126:72, heavy?1.48:1.18), heavy?340:240);
-  if(heavy) setTimeout(()=>coinFountain(96,1.28),700);
+  const stopRamp=startCoinRamp(level, duration);
+  return stopRamp;
 }
 
 function rainCoins(n){
