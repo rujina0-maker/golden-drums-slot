@@ -1445,7 +1445,7 @@ body::before {
   z-index: 6;
 }
 .basket-gain {
-  top: -8px;
+  top: -24px;
   z-index: 9;
 }
 .basket.pop .basket-art { transform: translateX(-50%) scale(1.055); }
@@ -1455,10 +1455,10 @@ body::before {
   filter: brightness(1.18) drop-shadow(0 0 18px rgba(255,226,89,.78));
 }
 @keyframes coinIntoBasket {
-  0% { transform: translate(-50%, -8px) scale(.65) rotate(0deg); opacity: 0; }
+  0% { transform: translate(-50%, -12px) scale(.65) rotate(0deg); opacity: 0; }
   20% { opacity: 1; }
-  72% { transform: translate(-50%, 68px) scale(1.08) rotate(250deg); opacity: 1; }
-  100% { transform: translate(-50%, 78px) scale(.55) rotate(360deg); opacity: 0; }
+  72% { transform: translate(-50%, 34px) scale(1.08) rotate(250deg); opacity: 1; }
+  100% { transform: translate(-50%, 42px) scale(.45) rotate(360deg); opacity: 0; }
 }
 
 .basket-fly-coin {
@@ -2437,8 +2437,8 @@ function flyCoinsToBasket(cells, matrix, maxCoins=10){
     const src=el.getBoundingClientRect();
     const sx=src.left+src.width*(.42+Math.random()*.16);
     const sy=src.top+src.height*(.42+Math.random()*.16);
-    const tx=target.left+target.width*(.44+Math.random()*.12);
-    const ty=target.top+target.height*(.28+Math.random()*.08);
+    const tx=target.left+target.width*(.45+Math.random()*.1);
+    const ty=target.top+target.height*(.2+Math.random()*.05);
     const c=document.createElement('span');
     c.className='basket-fly-coin';
     c.style.setProperty('--sx', sx+'px');
