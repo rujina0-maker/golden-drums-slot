@@ -2513,12 +2513,12 @@ async function evaluateBase(){
   if(pots>0){
     await flyCoinsToBasket(potCells, grid, 10);
     const beforeBasket=S.basket;
-    S.basket=Math.min(100,S.basket+pots*.7);
+    S.basket=Math.min(100,S.basket+pots*.28);
     coinSfx(pots); updateBasket(beforeBasket,pots);
   }
   // 잭팟은 게이지가 찰수록 확률이 올라가지만, 다 차도 즉시 보장되지는 않습니다.
-  // 실제 카지노보다 살짝 후한 정도로 조정한 기본 0.4% + 게이지 최대 3.5%.
-  const jpChance = 0.004 + (S.basket/100)*0.035;
+  // 게이지가 천천히 차도록 낮춘 기본 0.3% + 게이지 최대 2.6%.
+  const jpChance = 0.003 + (S.basket/100)*0.026;
   if(Math.random() < jpChance){
     await wait(500);
     await jackpotBurst();
@@ -2689,7 +2689,7 @@ async function freeSpins(cfg, spins){
     if(pots>0){
       await flyCoinsToBasket(potCells, fsCells, 12);
       const beforeBasket=S.basket;
-      S.basket=Math.min(100,S.basket+pots*.35);
+      S.basket=Math.min(100,S.basket+pots*.14);
       coinSfx(pots);
       updateBasket(beforeBasket,pots);
     }
@@ -2873,11 +2873,17 @@ function jackpotCardGame(){
     const winTier = roll < 0.65-bias*0.1 ? 'mini'
                   : roll < 0.89-bias*0.05 ? 'minor'
                   : roll < 0.98 ? 'major' : 'grand';
-    // 덱 구성: 당첨 등급 3장 + 나머지 등급 각 2장 = 9장 (당첨 등급만 3개라 항상 먼저 매칭)
+    // 덱은 시작 시 9장이 모두 정해진다. 당첨 3장이 후반에 몰리지 않게 앞쪽 6칸 안에 배치한다.
     const order=['grand','major','minor','mini'];
-    let deck=[];
-    order.forEach(t=>{ const n=(t===winTier)?3:2; for(let i=0;i<n;i++)deck.push(t); });
-    for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+    const deck=new Array(9).fill(null);
+    const earlySlots=[0,1,2,3,4,5];
+    for(let i=earlySlots.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [earlySlots[i],earlySlots[j]]=[earlySlots[j],earlySlots[i]]; }
+    earlySlots.slice(0,3).forEach(pos=>deck[pos]=winTier);
+    const filler=[];
+    order.forEach(t=>{ const n=(t===winTier)?0:2; for(let i=0;i<n;i++)filler.push(t); });
+    while(filler.length<deck.filter(v=>v===null).length) filler.push(order[Math.floor(Math.random()*order.length)]);
+    for(let i=filler.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [filler[i],filler[j]]=[filler[j],filler[i]]; }
+    deck.forEach((v,i)=>{ if(v===null) deck[i]=filler.pop(); });
 
     // 집계판 렌더
     const tallyEl=document.getElementById('jpTally');
