@@ -1703,6 +1703,55 @@ body.mobile-fx .reel.spinning .sym {
 .money-pop.edge {
   background-size: 100% 100% !important;
 }
+/* Layout refinements: jackpot tiers flank the basket, bottom panel shows win amount */
+.jp-grid {
+  position: absolute;
+  z-index: 6;
+  top: 73px;
+  left: clamp(10px, 3.2vw, 20px);
+  right: clamp(10px, 3.2vw, 20px);
+  display: grid;
+  grid-template-columns: clamp(66px, 18vw, 104px) clamp(66px, 18vw, 104px);
+  grid-template-rows: repeat(2, minmax(49px, auto));
+  justify-content: space-between;
+  align-content: start;
+  gap: 8px;
+  width: auto;
+  pointer-events: none;
+}
+.jp-tier {
+  width: 100%;
+  min-height: 49px;
+  justify-self: stretch;
+  padding: 6px 5px 7px;
+  border-radius: 9px;
+}
+.jp-tier.grand { grid-column: 1; grid-row: 1; }
+.jp-tier.minor { grid-column: 1; grid-row: 2; }
+.jp-tier.major { grid-column: 2; grid-row: 1; }
+.jp-tier.mini { grid-column: 2; grid-row: 2; }
+.jp-name { font-size: clamp(9px, 2.4vw, 11px); line-height: 1; }
+.jp-val { font-size: clamp(13px, 3.45vw, 19px); line-height: 1.08; white-space: nowrap; }
+.info-row {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, .85fr);
+}
+.info-box.win .info-val {
+  color: #ffe485;
+  text-shadow: 0 0 10px rgba(255, 195, 58, .72), 0 1px 0 #3a0700;
+}
+.info-box.balance .info-val {
+  font-size: clamp(17px, 4vw, 21px);
+}
+@media (max-width: 430px) {
+  .jp-grid {
+    top: 76px;
+    grid-template-columns: 68px 68px;
+    left: 12px;
+    right: 12px;
+  }
+  .jp-tier { min-height: 48px; padding-left: 4px; padding-right: 4px; }
+  .jp-val { font-size: 13px; }
+}
 </style>
 </head>
 <body>
@@ -1865,11 +1914,7 @@ body.mobile-fx .reel.spinning .sym {
   </div>
 
   <div class="bet-panel">
-    <div class="info-row">
-      <div class="info-box"><div class="info-label">잔액</div><div class="info-val" id="balance">100,000</div></div>
-      <div class="info-box"><div class="info-label">총 베팅</div><div class="info-val" id="betDisplay">880</div></div>
-    </div>
-    <div class="denom-row">
+    <div class="info-row">       <div class="info-box balance"><div class="info-label">잔액</div><div class="info-val" id="balance">100,000</div></div>       <div class="info-box win"><div class="info-label">당첨</div><div class="info-val" id="winDisplay">0</div></div>     </div>     <div class="denom-row">
       <span class="denom-label">기본 베팅</span>
       <span class="denom-val" id="denomBetVal">880 <span class="denom-ways">/ 243 WAYS</span></span>
     </div>
@@ -2062,8 +2107,8 @@ function payFor(key, run){
 function buildStrip(reelIdx, bonus=false){
   const w=[]; const add=(k,n)=>{for(let i=0;i<n;i++)w.push(k);};
   add('dragon',4); add('lion',5); add('lantern',6); add('koi',7);
-  const wildWeights = [2, 3, 3, 2, 2];
-  const drumWeights = [6, 5, 5, 4, 3];
+  const wildWeights = [0, 3, 3, 3, 0];
+  const drumWeights = [7, 6, 6, 5, 4];
   add('w', bonus ? 1 : wildWeights[reelIdx]);
   add('A',5); add('K',6); add('Q',6); add('J',7); add('N',7);
   add('p', 3);
@@ -2074,18 +2119,23 @@ const STRIPS = [0,1,2,3,4].map(i=>buildStrip(i));
 const BONUS_STRIP = buildStrip(0, true);
 const rand = a => a[Math.floor(Math.random()*a.length)];
 function fmt(n){
-  const value = Math.floor(Number(n) || 0);
+  const raw = Number(n);
+  const value = Math.floor(Number.isFinite(raw) ? raw : 0);
   const abs = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-  const compact = (div, suffix) => {
-    const v = abs / div;
-    const digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
-    return sign + v.toFixed(digits).replace(/\\.0+$|(?<=\\.\\d)0$/g, '') + suffix;
+  const sign = value < 0 ? String.fromCharCode(45) : String();
+  if(abs < 100000000) return value.toLocaleString();
+  const dot = String.fromCharCode(46);
+  const zero = String.fromCharCode(48);
+  const trimDecimal = text => {
+    if(text.endsWith(dot + zero + zero)) return text.slice(0, -3);
+    if(text.endsWith(dot + zero)) return text.slice(0, -2);
+    if(text.includes(dot) && text.endsWith(zero)) return text.slice(0, -1);
+    return text;
   };
-  if(abs >= 1000000000) return compact(1000000000, 'B');
-  if(abs >= 1000000) return compact(1000000, 'M');
-  if(abs >= 100000) return compact(1000, 'K');
-  return value.toLocaleString('ko-KR');
+  const compact = (div, suffix, digits) => sign + trimDecimal((abs / div).toFixed(digits)) + suffix;
+  if(abs < 1000000000) return compact(1000000, String.fromCharCode(77), 1);
+  if(abs < 1000000000000) return compact(1000000000, String.fromCharCode(66), 2);
+  return compact(1000000000000, String.fromCharCode(84), 2);
 }
 const wait = ms => new Promise(r=>setTimeout(r,ms));
 
@@ -2248,7 +2298,7 @@ async function longWinCelebration(amount, bet, el){
 }
 async function mediumWinCelebration(amount, bet, el, cells=null, matrix=null){
   const m=amount/bet;
-  const dur=amount>=6500 || m>=6 ? 6200 : 4200;
+  const dur=amount>=6500 || m>=6 ? 6200 : 3600;
   showBanner(amount>=6500 || m>=6 ? 'NICE WIN!' : 'WIN!', 1200);
   winFanfare(false);
   const stopEvent=eventWinEffect(1, dur);
@@ -2311,7 +2361,8 @@ board.forEach((col,r)=>col.forEach((s,row)=>renderCell(r,row,s)));
 
 function updateHud(){
   document.getElementById('balance').textContent=fmt(S.balance);
-  document.getElementById('betDisplay').textContent=fmt(totalBet());
+  const betDisplay=document.getElementById('betDisplay');
+  if(betDisplay) betDisplay.textContent=fmt(totalBet());
   const denom=document.getElementById('denomBetVal');
   if(denom) denom.innerHTML=`${fmt(totalBet())} <span class="denom-ways">/ 243 WAYS</span>`;
   saveState();
@@ -2421,8 +2472,7 @@ async function spin(){
   S.balance-=bet;
   // 프로그레시브 누적
   S.jp.grand+=bet*0.05; S.jp.major+=bet*0.03; S.jp.minor+=bet*0.02; S.jp.mini+=bet*0.01;
-  const wd=document.getElementById('winDisplay') ? document.getElementById('winDisplay') : document.getElementById('betDisplay');
-  if(wd){ wd.textContent=fmt(totalBet()); wd.classList.remove('win-anim'); }
+  const wd=document.getElementById('winDisplay');   if(wd){ wd.textContent='0'; wd.classList.remove('win-anim'); }
   document.querySelectorAll('.cell').forEach(c=>c.classList.remove('win-glow','win-flash','drum-hit'));
   updateHud(); updateJp();
   tone(440,.1,'square',.1);
@@ -2625,12 +2675,12 @@ async function evaluateBase(){
   if(pots>0){
     await flyCoinsToBasket(potCells, grid, 10);
     const beforeBasket=S.basket;
-    S.basket=Math.min(100,S.basket+pots*.28);
+    S.basket=Math.min(100,S.basket+pots*.18);
     coinSfx(pots); updateBasket(beforeBasket,pots);
   }
   // 공식 룰 기준: COIN POT 누적량은 프로그레시브 보너스 발동 확률에 영향이 없습니다.
   // 실제 카지노보다 살짝 자주 보이도록 고정 확률만 사용합니다.
-  const jpChance = 0.006;
+  const jpChance = 0.009;
   if(Math.random() < jpChance){
     await wait(500);
     await jackpotBurst();
@@ -2650,12 +2700,9 @@ async function evaluateBase(){
   if(totalWin>0){
     totalWin=Math.floor(totalWin);
     S.balance+=totalWin;
-    const wd=document.getElementById('winDisplay') || document.getElementById('betDisplay');
-    wd.textContent=fmt(totalWin); wd.classList.add('win-anim');
+    const wd=document.getElementById('winDisplay');     if(wd){ wd.textContent=fmt(totalWin); wd.classList.add('win-anim'); }
     const m=totalWin/bet;
-    if(m>=10){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
-    else if(m>=4 || totalWin>=4500){ await mediumWinCelebration(totalWin, bet, wd, cells, grid); }
-    else if(m>=2.5 || totalWin>=2600){ winFanfare(false); burstCoinsFromCells(cells, grid, 10, .58); }
+    if(m>=10 && wd){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }     else if((m>=4 || totalWin>=4500) && wd){ await mediumWinCelebration(totalWin, bet, wd, cells, grid); }     else if(m>=2.5 || totalWin>=2600){ winFanfare(false); const stopEvent=eventWinEffect(1, 1700); burstCoinsFromCells(cells, grid, 14, .66); setTimeout(()=>{ if(stopEvent) stopEvent(); },1700); }
     else coinSfx(2);
     updateHud();
   }
@@ -2801,7 +2848,7 @@ async function freeSpins(cfg, spins){
     if(pots>0){
       await flyCoinsToBasket(potCells, fsCells, 12);
       const beforeBasket=S.basket;
-      S.basket=Math.min(100,S.basket+pots*.14);
+      S.basket=Math.min(100,S.basket+pots*.09);
       coinSfx(pots);
       updateBasket(beforeBasket,pots);
     }
