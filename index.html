@@ -1694,7 +1694,7 @@ body.mobile-fx .reel.spinning .sym {
 
 /* Generated gold coin sprite override */
 .money-pop {
-  background: url(assets/coin-effect.png) center / contain no-repeat !important;
+  background: url(assets/coin-effect.png) center / contain no-repeat, radial-gradient(circle at 35% 28%, #fff8c4 0 10%, transparent 11%), radial-gradient(circle at 50% 50%, #fff08a 0 18%, #f1b522 19% 52%, #a76108 53% 100%) !important;
 }
 .money-pop::before,
 .money-pop::after {
@@ -1746,6 +1746,7 @@ body.mobile-fx .reel.spinning .sym {
 }
 .event-flash {
   z-index: 360;
+  display: none !important;
 }
 .money-pop {
   z-index: 430;
@@ -3210,9 +3211,9 @@ function startCoinRamp(level=1, duration=3600, target=null){
     coinCascadeSfx(ms,intensity);
   };
 
-  add(0,()=>{ drumHit(0,.28); burst(2,.62,90,.22); });
-  add(360,()=>{ drumHit(0,.34); burst(3,.7,110,.28); });
-  add(780,()=>{ drumHit(0,.42); burst(5,.8,150,.34); });
+  add(0,()=>{ drumHit(0,.28); burst(10,.68,120,.28); });
+  add(360,()=>{ drumHit(0,.34); burst(12,.78,150,.34); });
+  add(780,()=>{ drumHit(0,.42); burst(16,.9,190,.42); });
   add(1220,()=>{ drumHit(0,.48); burst(mid?12:8,.92,220,.5); });
   add(1660,()=>{ jackpotDrumroll(360); burst(mid?22:14,1.02,300,.65); });
   add(2140,()=>{ jackpotDrumroll(540); burst(heavy?54:mid?36:22,heavy?1.32:mid?1.16:1.02,500,heavy?1:.78); });
@@ -3244,12 +3245,7 @@ function startCoinRamp(level=1, duration=3600, target=null){
   };
 }
 function eventWinEffect(level=1, duration=1000){
-  const flash=document.getElementById('eventFlash');
-  if(flash){
-    flash.classList.remove('show');
-    void flash.offsetWidth;
-    flash.classList.add('show');
-  }
+  // Central yellow flash disabled; coin fountain and sound carry the win event.
   const heavy=level>=3;
   casinoRise(heavy?1.8:1.05, heavy?.16:.1);
   noiseBurst(heavy?.72:.42, heavy?.18:.1, .08, 3200);
