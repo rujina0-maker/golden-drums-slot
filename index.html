@@ -1706,13 +1706,13 @@ body.mobile-fx .reel.spinning .sym {
 /* Layout refinements: jackpot tiers flank the basket, bottom panel shows win amount */
 .jp-grid {
   position: absolute;
-  z-index: 6;
-  top: 73px;
-  left: clamp(10px, 3.2vw, 20px);
-  right: clamp(10px, 3.2vw, 20px);
+  z-index: 11;
+  top: 76px;
+  left: clamp(32px, 8vw, 58px);
+  right: clamp(32px, 8vw, 58px);
   display: grid;
-  grid-template-columns: clamp(66px, 18vw, 104px) clamp(66px, 18vw, 104px);
-  grid-template-rows: repeat(2, minmax(49px, auto));
+  grid-template-columns: clamp(96px, 22vw, 124px) clamp(96px, 22vw, 124px);
+  grid-template-rows: repeat(2, minmax(52px, auto));
   justify-content: space-between;
   align-content: start;
   gap: 8px;
@@ -1721,17 +1721,38 @@ body.mobile-fx .reel.spinning .sym {
 }
 .jp-tier {
   width: 100%;
-  min-height: 49px;
+  min-height: 52px;
   justify-self: stretch;
-  padding: 6px 5px 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px 8px 7px;
   border-radius: 9px;
 }
 .jp-tier.grand { grid-column: 1; grid-row: 1; }
 .jp-tier.minor { grid-column: 1; grid-row: 2; }
 .jp-tier.major { grid-column: 2; grid-row: 1; }
 .jp-tier.mini { grid-column: 2; grid-row: 2; }
-.jp-name { font-size: clamp(9px, 2.4vw, 11px); line-height: 1; }
-.jp-val { font-size: clamp(13px, 3.45vw, 19px); line-height: 1.08; white-space: nowrap; }
+.jp-name { font-size: clamp(10px, 2.5vw, 12px); line-height: 1; }
+.jp-val { font-size: clamp(15px, 3.8vw, 20px); line-height: 1.08; white-space: nowrap; }
+.basket-row {
+  z-index: 7;
+  width: min(50%, 270px);
+}
+.coin-rain {
+  z-index: 420;
+}
+.event-flash {
+  z-index: 360;
+}
+.money-pop {
+  z-index: 430;
+}
+.coin-spark {
+  z-index: 431;
+}
 .info-row {
   grid-template-columns: minmax(0, 1.35fr) minmax(0, .85fr);
 }
@@ -1744,13 +1765,14 @@ body.mobile-fx .reel.spinning .sym {
 }
 @media (max-width: 430px) {
   .jp-grid {
-    top: 76px;
-    grid-template-columns: 68px 68px;
-    left: 12px;
-    right: 12px;
+    top: 78px;
+    grid-template-columns: 96px 96px;
+    left: 30px;
+    right: 30px;
   }
-  .jp-tier { min-height: 48px; padding-left: 4px; padding-right: 4px; }
-  .jp-val { font-size: 13px; }
+  .jp-tier { min-height: 50px; padding-left: 6px; padding-right: 6px; }
+  .jp-val { font-size: 15px; }
+  .basket-row { width: min(50%, 220px); }
 }
 </style>
 </head>
@@ -2934,7 +2956,7 @@ function jackpotBurst(){
     document.getElementById('basket').classList.remove('bursting','closed','closing');
     const tierEl=document.getElementById('jp'+tier[0].toUpperCase()+tier.slice(1));
     tierEl.classList.add('flash');
-    ttiriri(); eventWinEffect(3,1700);
+    ttiriri();
     const ov=document.getElementById('jpOverlay');
     document.getElementById('jpOvTitle').textContent=tier.toUpperCase()+' JACKPOT!';
     const amtEl=document.getElementById('jpOvAmount');
@@ -2945,6 +2967,9 @@ function jackpotBurst(){
       if(cur>=amount){clearInterval(iv); winFanfare(true);}
     },50);
     ov.classList.add('show');
+    const stopJpCoins=eventWinEffect(3,5200);
+    coinFountain(110,1.65);
+    setTimeout(()=>{ if(stopJpCoins) stopJpCoins(); },5200);
     document.getElementById('jpClose').onclick=()=>{
       ov.classList.remove('show');
       tierEl.classList.remove('flash');
@@ -3120,14 +3145,14 @@ function jackpotDrumroll(ms=900){
 function fxScale(){
   const small=window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
   const lowCore=navigator.hardwareConcurrency && navigator.hardwareConcurrency<=4;
-  return small ? (lowCore ? .22 : .3) : 1;
+  return small ? (lowCore ? .42 : .55) : 1;
 }
 function coinFountain(n=34, power=1, target=null){
   const cont=target || document.getElementById('coinRain');
   if(!cont) return;
   const local=!!target;
   const scale=fxScale();
-  n=Math.max(1, Math.floor(n*scale));
+  n=Math.max(scale<1 ? 8 : 1, Math.floor(n*scale));
   power=power*(scale<1?.72:1);
   const waves=scale<1 ? (power>=1.05?2:1) : (power>=1.55?4:power>=1.25?3:power>=1.05?2:1);
   for(let wave=0; wave<waves; wave++){
