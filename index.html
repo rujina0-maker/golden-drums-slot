@@ -478,7 +478,18 @@ body::before {
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .72)) drop-shadow(0 0 5px rgba(255, 211, 70, .22));
 }
 
-.reel.spinning .cell { filter: blur(2px) saturate(1.3); }
+.reel.spinning .cell {
+  filter: none;
+  transition: none;
+}
+.reel.spinning .sym {
+  opacity: .82;
+  animation: reelTick .14s linear infinite;
+}
+@keyframes reelTick {
+  0% { transform: translateY(-4%) scale(1.06); }
+  100% { transform: translateY(4%) scale(1.06); }
+}
 .reel.anticipate {
   box-shadow: 0 0 18px 4px rgba(255, 60, 60, .9), inset 0 0 12px rgba(255, 213, 74, .3);
   animation: anticipate .3s infinite alternate;
@@ -598,7 +609,7 @@ body::before {
 
 .info-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
   margin-bottom: 8px;
 }
@@ -627,9 +638,9 @@ body::before {
 
 .info-val {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: clamp(14px, 4.2vw, 19px);
+  overflow: visible;
+  text-overflow: clip;
+  font-size: clamp(15px, 4.4vw, 20px);
   line-height: 1.12;
   font-weight: 1000;
   color: #fff2a8;
@@ -1031,7 +1042,17 @@ body::before {
   background: #090101;
 }
 
-.fs-cell.shuffle { filter: blur(2px) saturate(1.3); }
+.fs-cell.shuffle {
+  filter: none;
+}
+.fs-cell.shuffle .sym {
+  opacity: .84;
+  animation: reelTick .14s linear infinite;
+}
+body.mobile-fx .fs-cell.shuffle .sym {
+  opacity: .9;
+  animation-duration: .18s;
+}
 
 #fsTotal { transition: transform .1s; }
 #fsTotal.rolling { animation: totalRoll .25s infinite alternate; }
@@ -1363,7 +1384,7 @@ body::before {
   right: 14px;
   top: 68px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-content: space-between;
   gap: 8px min(40%, 178px);
   width: auto;
@@ -1639,8 +1660,49 @@ body::before {
 .coin-spark {
   box-shadow: 0 0 9px 3px rgba(255,211,54,.58);
 }
+body.mobile-fx .money-pop {
+  filter: none;
+  transform-style: flat;
+}
+body.mobile-fx .money-pop::before {
+  border-width: 1px;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255,255,220,.9) 0 9%, transparent 10%),
+    radial-gradient(circle at 50% 50%, #fff08a 0 18%, #f1b522 19% 52%, #a76108 53% 100%);
+  box-shadow: inset 0 -2px 3px rgba(92,45,0,.32);
+}
+body.mobile-fx .money-pop::after,
+body.mobile-fx .coin-spark {
+  display: none;
+}
+body.mobile-fx .event-flash {
+  filter: none;
+}
+body.mobile-fx .cell.win {
+  animation-duration: .55s;
+}
+body.mobile-fx .cell.win::after {
+  display: none;
+}
+body.mobile-fx .reel.spinning .sym {
+  filter: none;
+  opacity: .9;
+  animation-duration: .18s;
+}
 }
 
+
+/* Generated gold coin sprite override */
+.money-pop {
+  background: url(assets/coin-effect.png) center / contain no-repeat !important;
+}
+.money-pop::before,
+.money-pop::after {
+  display: none !important;
+}
+.money-pop.edge {
+  background-size: 100% 100% !important;
+}
 </style>
 </head>
 <body>
@@ -1806,10 +1868,9 @@ body::before {
     <div class="info-row">
       <div class="info-box"><div class="info-label">잔액</div><div class="info-val" id="balance">100,000</div></div>
       <div class="info-box"><div class="info-label">총 베팅</div><div class="info-val" id="betDisplay">880</div></div>
-      <div class="info-box"><div class="info-label">당첨</div><div class="info-val" id="winDisplay">0</div></div>
     </div>
     <div class="denom-row">
-      <span class="denom-label">기본 배팅 (88 라인 x 10)</span>
+      <span class="denom-label">기본 베팅</span>
       <span class="denom-val" id="denomBetVal">880 <span class="denom-ways">/ 243 WAYS</span></span>
     </div>
     <div class="bet-row">
@@ -1887,7 +1948,7 @@ const S = {
   betIndex: 0,
   spinning: false,
   auto: false,
-  basket: 0,       // 잭팟 게이지 (0~100)
+  basket: 0,       // 코인팟 누적 연출 (0~100). 잭팟 발동 확률에는 영향 없음.
   jp: { grand: 500000, major: 120000, minor: 30000, mini: 8000 },
 };
 const SAVE_KEY='golden-drums-slot-state-v2';
@@ -1929,6 +1990,10 @@ function saveState(){
 loadState();
 const currentBetLevel = () => BET_LEVELS[S.betIndex] || BET_LEVELS[0];
 const totalBet = () => currentBetLevel().amount;
+function isMobileFx(){
+  return !!(window.matchMedia && window.matchMedia('(max-width: 640px)').matches);
+}
+if(isMobileFx()) document.body.classList.add('mobile-fx');
 
 // ============ 심볼 ============
 const SYMIMG = {
@@ -1997,16 +2062,31 @@ function payFor(key, run){
 function buildStrip(reelIdx, bonus=false){
   const w=[]; const add=(k,n)=>{for(let i=0;i<n;i++)w.push(k);};
   add('dragon',4); add('lion',5); add('lantern',6); add('koi',7);
-  add('w', bonus ? 1 : 2);
+  const wildWeights = [2, 3, 3, 2, 2];
+  const drumWeights = [6, 5, 5, 4, 3];
+  add('w', bonus ? 1 : wildWeights[reelIdx]);
   add('A',5); add('K',6); add('Q',6); add('J',7); add('N',7);
-  add('p', 4);
-  add('d', bonus ? 2 : 3);
+  add('p', 3);
+  add('d', bonus ? 2 : drumWeights[reelIdx]);
   return w;
 }
 const STRIPS = [0,1,2,3,4].map(i=>buildStrip(i));
 const BONUS_STRIP = buildStrip(0, true);
 const rand = a => a[Math.floor(Math.random()*a.length)];
-const fmt = n => Math.floor(n).toLocaleString('ko-KR');
+function fmt(n){
+  const value = Math.floor(Number(n) || 0);
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  const compact = (div, suffix) => {
+    const v = abs / div;
+    const digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
+    return sign + v.toFixed(digits).replace(/\\.0+$|(?<=\\.\\d)0$/g, '') + suffix;
+  };
+  if(abs >= 1000000000) return compact(1000000000, 'B');
+  if(abs >= 1000000) return compact(1000000, 'M');
+  if(abs >= 100000) return compact(1000, 'K');
+  return value.toLocaleString('ko-KR');
+}
 const wait = ms => new Promise(r=>setTimeout(r,ms));
 
 // ============ 오디오 ============
@@ -2210,7 +2290,23 @@ function hasRealDrum(col){ return col.some(s=>s==='d'); }
 function symHtml(sym){
   return `<img class="sym sym-${sym}" src="${SYM[sym].img}" draggable="false" alt="">`;
 }
-function renderCell(r,row,sym){ const c=grid[r][row]; c.innerHTML=symHtml(sym); c.style.background=SYM[sym].bg; }
+function renderCell(r,row,sym){
+  const c=grid[r][row];
+  if(c.dataset.sym===sym) return;
+  c.dataset.sym=sym;
+  let img=c.firstElementChild;
+  if(!img){
+    img=document.createElement('img');
+    img.className='sym';
+    img.draggable=false;
+    img.alt='';
+    c.textContent='';
+    c.appendChild(img);
+  }
+  img.className='sym sym-'+sym;
+  img.src=SYM[sym].img;
+  c.style.background=SYM[sym].bg;
+}
 board.forEach((col,r)=>col.forEach((s,row)=>renderCell(r,row,s)));
 
 function updateHud(){
@@ -2325,8 +2421,8 @@ async function spin(){
   S.balance-=bet;
   // 프로그레시브 누적
   S.jp.grand+=bet*0.05; S.jp.major+=bet*0.03; S.jp.minor+=bet*0.02; S.jp.mini+=bet*0.01;
-  document.getElementById('winDisplay').textContent='0';
-  document.getElementById('winDisplay').classList.remove('win-anim');
+  const wd=document.getElementById('winDisplay') ? document.getElementById('winDisplay') : document.getElementById('betDisplay');
+  if(wd){ wd.textContent=fmt(totalBet()); wd.classList.remove('win-anim'); }
   document.querySelectorAll('.cell').forEach(c=>c.classList.remove('win-glow','win-flash','drum-hit'));
   updateHud(); updateJp();
   tone(440,.1,'square',.1);
@@ -2338,7 +2434,8 @@ async function spin(){
   // 회전 시작
   for(let r=0;r<5;r++){
     document.getElementById('reel'+r).classList.add('spinning');
-    grid[r].forEach((cell,row)=>{ cell._iv=setInterval(()=>renderCell(r,row,rand(STRIPS[r])),60); });
+    const spinGap=isMobileFx()?110:60;
+    grid[r].forEach((cell,row)=>{ cell._iv=setInterval(()=>renderCell(r,row,rand(STRIPS[r])),spinGap); });
   }
   // 순차 정지 + anticipation
   const gaps=[600,250,250,250,250];
@@ -2471,8 +2568,8 @@ function burstCoinsFromCells(cells, matrix, amount=18, power=1){
   if(!cont || !cells || !cells.size) return;
   const arr=[...cells];
   const scale=fxScale();
-  const count=Math.min(scale<1?34:70, Math.max(Math.floor(amount*scale), Math.floor(arr.length*5*scale), 4));
-  power=power*(scale<1?.88:1);
+  const count=Math.min(scale<1?18:70, Math.max(Math.floor(amount*scale), Math.floor(arr.length*(scale<1?3:5)*scale), scale<1?3:4));
+  power=power*(scale<1?.74:1);
   for(let i=0;i<count;i++){
     const pos=arr[i%arr.length];
     const [r,row]=pos.split('-').map(Number);
@@ -2480,7 +2577,7 @@ function burstCoinsFromCells(cells, matrix, amount=18, power=1){
     if(!el) continue;
     const box=el.getBoundingClientRect();
     const c=document.createElement('div');
-    c.className='money-pop' + (Math.random()<.22 ? ' edge' : '');
+    c.className='money-pop' + (Math.random()<(scale<1?.1:.22) ? ' edge' : '');
     const sx=box.left+box.width*(.35+Math.random()*.3);
     const sy=window.innerHeight-(box.top+box.height*(.45+Math.random()*.2));
     const side=Math.random()<.5?-1:1;
@@ -2489,7 +2586,7 @@ function burstCoinsFromCells(cells, matrix, amount=18, power=1){
     c.style.setProperty('--dx', ((35+Math.random()*150)*side*power)+'px');
     c.style.setProperty('--apex', (-(130+Math.random()*240)*power)+'px');
     c.style.setProperty('--land', (-(20+Math.random()*120)*power)+'px');
-    const size=22+Math.random()*28*power;
+    const size=(scale<1?18:22)+Math.random()*(scale<1?18:28)*power;
     c.style.setProperty('--w', size+'px');
     c.style.setProperty('--h', size+'px');
     c.style.setProperty('--rz', ((side>0?1:-1)*(420+Math.random()*900))+'deg');
@@ -2522,7 +2619,7 @@ async function evaluateBase(){
     if(win>=3500) burstCoinsFromCells(cells, grid, win>=6500 ? 34 : 18, win>=6500 ? 1.08 : .78);
   }
 
-  // 금화 → 게이지 + 잭팟 확률 판정
+  // 금화 → COIN POT 누적 연출
   const potCells=symbolCells(board,'p');
   const pots=potCells.length;
   if(pots>0){
@@ -2531,9 +2628,9 @@ async function evaluateBase(){
     S.basket=Math.min(100,S.basket+pots*.28);
     coinSfx(pots); updateBasket(beforeBasket,pots);
   }
-  // 잭팟은 게이지가 찰수록 확률이 올라가지만, 다 차도 즉시 보장되지는 않습니다.
-  // 게이지가 천천히 차도록 낮춘 기본 0.3% + 게이지 최대 2.6%.
-  const jpChance = 0.003 + (S.basket/100)*0.026;
+  // 공식 룰 기준: COIN POT 누적량은 프로그레시브 보너스 발동 확률에 영향이 없습니다.
+  // 실제 카지노보다 살짝 자주 보이도록 고정 확률만 사용합니다.
+  const jpChance = 0.006;
   if(Math.random() < jpChance){
     await wait(500);
     await jackpotBurst();
@@ -2553,7 +2650,7 @@ async function evaluateBase(){
   if(totalWin>0){
     totalWin=Math.floor(totalWin);
     S.balance+=totalWin;
-    const wd=document.getElementById('winDisplay');
+    const wd=document.getElementById('winDisplay') || document.getElementById('betDisplay');
     wd.textContent=fmt(totalWin); wd.classList.add('win-anim');
     const m=totalWin/bet;
     if(m>=10){ wd.textContent='0'; await longWinCelebration(totalWin, bet, wd); }
@@ -2976,7 +3073,7 @@ function jackpotDrumroll(ms=900){
 function fxScale(){
   const small=window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
   const lowCore=navigator.hardwareConcurrency && navigator.hardwareConcurrency<=4;
-  return small ? (lowCore ? .38 : .48) : 1;
+  return small ? (lowCore ? .22 : .3) : 1;
 }
 function coinFountain(n=34, power=1, target=null){
   const cont=target || document.getElementById('coinRain');
@@ -2984,19 +3081,19 @@ function coinFountain(n=34, power=1, target=null){
   const local=!!target;
   const scale=fxScale();
   n=Math.max(1, Math.floor(n*scale));
-  power=power*(scale<1?.9:1);
-  const waves=power>=1.55?4:power>=1.25?3:power>=1.05?2:1;
+  power=power*(scale<1?.72:1);
+  const waves=scale<1 ? (power>=1.05?2:1) : (power>=1.55?4:power>=1.25?3:power>=1.05?2:1);
   for(let wave=0; wave<waves; wave++){
     const count=Math.ceil(n/waves);
     for(let i=0;i<count;i++){
       const c=document.createElement('div');
-      c.className='money-pop' + (Math.random()<.28 ? ' edge' : '');
+      c.className='money-pop' + (Math.random()<(scale<1?.1:.28) ? ' edge' : '');
       const origin=50+(Math.random()-.5)*(local?74:40);
       const side=(Math.random()<.5?-1:1);
-      const spread=(45+Math.random()*(local?190:280))*power*side;
-      const apex=-(local?210+Math.random()*300:360+Math.random()*430)*power;
-      const land=-(local?10+Math.random()*170:40+Math.random()*270)*power;
-      const size=(local?22:30)+Math.random()*(local?26:42)*power;
+      const spread=(45+Math.random()*(local?150:230))*power*side;
+      const apex=-(local?190+Math.random()*230:320+Math.random()*310)*power;
+      const land=-(local?10+Math.random()*140:40+Math.random()*210)*power;
+      const size=(local?20:scale<1?24:30)+Math.random()*(local?22:scale<1?26:42)*power;
       c.style.setProperty('--x', origin+(local?'%':'vw'));
       c.style.setProperty('--dx', spread+'px');
       c.style.setProperty('--apex', apex+'px');
@@ -3010,7 +3107,7 @@ function coinFountain(n=34, power=1, target=null){
       cont.appendChild(c);
       setTimeout(()=>c.remove(),3400+wave*260);
     }
-    const sparkCount=scale<1 ? Math.max(1, Math.floor(count/10)) : Math.max(5, Math.floor(count/5));
+    const sparkCount=scale<1 ? 0 : Math.max(5, Math.floor(count/5));
     for(let s=0;s<sparkCount;s++){
       const sp=document.createElement('div');
       sp.className='coin-spark';
@@ -3062,7 +3159,7 @@ function startCoinRamp(level=1, duration=3600, target=null){
     burst(count,power,240+p*240,.55+p*.42);
     if(p>.45) jackpotDrumroll(380+p*220);
     else drumHit(0,.38+p*.18);
-    const gapBoost=fxScale()<1 ? 1.28 : 1;
+    const gapBoost=fxScale()<1 ? 1.75 : 1;
     loopTimer=setTimeout(loop, Math.max(260, ((heavy?620:760)-p*(heavy?260:300))*gapBoost));
   };
   const startedAt=performance.now();
@@ -3104,3 +3201,8 @@ function rainCoins(n){
 </script>
 </body>
 </html>
+
+
+
+
+
