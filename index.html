@@ -1705,11 +1705,12 @@ body.mobile-fx .reel.spinning .sym {
 }
 .money-pop {
   background:
+    url(assets/coin-effect.png) center / contain no-repeat,
     radial-gradient(circle at 34% 26%, #fffbd2 0 10%, rgba(255, 255, 255, 0) 11%),
     radial-gradient(ellipse at 50% 50%, #fff08d 0 18%, #f8c233 19% 48%, #d98b12 49% 66%, #7f3d05 67% 100%) !important;
-  border: 2px solid rgba(255, 229, 105, .98) !important;
-  border-radius: 50% !important;
-  box-shadow: 0 0 16px rgba(255, 205, 45, .95), inset 0 -4px 7px rgba(105, 50, 0, .42), inset 0 3px 4px rgba(255, 255, 210, .5) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 14px rgba(255, 205, 45, .88), 0 8px 10px rgba(0, 0, 0, .46) !important;
 }
 .money-pop::before,
 .money-pop::after {
@@ -1717,8 +1718,9 @@ body.mobile-fx .reel.spinning .sym {
 }
 .money-pop.edge {
   background:
+    url(assets/coin-effect-64.png) center / contain no-repeat,
     linear-gradient(90deg, #7d3a04 0 12%, #f8c735 14% 48%, #fff19a 49% 54%, #b96a07 56% 100%) !important;
-  border-radius: 999px !important;
+  border-radius: 0 !important;
 }
 /* Layout refinements: jackpot tiers flank the basket, bottom panel shows win amount */
 .jp-grid {
